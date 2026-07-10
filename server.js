@@ -767,8 +767,8 @@ async function getVoiceModel() {
     return voicePromise;
 }
 
-// Inicia carregamentos - modelo de voz desabilitado no HF Free (fetch timeout)
-getTranscriber().catch(() => {});
+// Inicia carregamentos - modelo carrega sob demanda (lazy), não bloqueia startup
+// getTranscriber().catch(() => {});
 // getVoiceModel().catch(() => {});
 
 function broadcastEvent(sessionId, data) {
