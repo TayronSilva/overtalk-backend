@@ -650,6 +650,11 @@ app.post('/api/session/start', requireAuth, sessionRateLimitMiddleware, apiRateL
     res.json({ success: true, sessionId: session.id, pin: session.pin });
 });
 
+// Root health check — required by Hugging Face Spaces
+app.get('/', (req, res) => {
+    res.status(200).json({ status: 'ok', service: 'overtalk-backend' });
+});
+
 app.get('/api/health', (req, res) => {
     const memory = process.memoryUsage();
     res.json({
@@ -668,6 +673,7 @@ app.get('/api/health', (req, res) => {
         }
     });
 });
+
 
 app.get('/api/session/export', requireConversationOwnership, (req, res) => {
     const session = req.session;
