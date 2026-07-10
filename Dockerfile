@@ -15,7 +15,8 @@ RUN npm install --omit=dev
 # Copiar código fonte
 COPY . .
 
-# Porta usada pelo Express
-EXPOSE 3000
+# Hugging Face Spaces requires port 7860
+ENV PORT=7860
+EXPOSE 7860
 
 CMD ["node", "server.js"]
