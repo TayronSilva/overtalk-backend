@@ -757,9 +757,9 @@ async function getVoiceModel() {
     return voicePromise;
 }
 
-// Inicia carregamentos
+// Inicia carregamentos - modelo de voz desabilitado no HF Free (fetch timeout)
 getTranscriber().catch(() => {});
-getVoiceModel().catch(() => {});
+// getVoiceModel().catch(() => {});
 
 function broadcastEvent(sessionId, data) {
     const session = conversationManager.getSession(sessionId);
@@ -873,7 +873,9 @@ app.post('/register_voice', requireConversationOwnership, apiRateLimitMiddleware
         // CORREÇÃO CRÍTICA: Converte Buffer do Node para Float32Array de forma segura
         const audioBuffer = Buffer.from(req.body);
         const float32Audio = new Float32Array(audioBuffer.buffer, audioBuffer.byteOffset, audioBuffer.length / 4);
-        const { model, processor } = await getVoiceModel();
+        
+        let model, processor;
+        try { const m = await getVoiceModel(); model = m.model; processor = m.processor; } catch(e) { return res.status(503).json({ error: 'Modelo de voz indisponível' }); }
         
         // LIMITAÇÃO DE TEMPO: usa o limte configurado para treinar (garante consistência)
         const maxAudioDurationSeconds = runtimeConfig.rateLimits.maxAudioDurationSeconds;
@@ -1122,6 +1124,11 @@ app.listen(PORT, () => {
         
         cf.stdout.on('data', handleTunnelData);
         cf.stderr.on('data', handleTunnelData);
+
+        cf.on('error', (err) => {
+            console.error(`⚠️ SSH Tunnel não disponível neste ambiente (${err.message}). Pulando túnel SSH.`);
+            console.log(`📋 Servidor local em http://localhost:${PORT}`);
+        });
 
         cf.on('close', (code) => {
             console.error(`⚠️ SSH Tunnel fechou inesperadamente (código ${code}). Reiniciando em 5 segundos...`);
