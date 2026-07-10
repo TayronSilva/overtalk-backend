@@ -1,0 +1,6 @@
+PARA O WINDOWS MANDAR O COMANDO PARA INTERNET
+.\hotkey_bridge.ps1
+
+PARA INICIAR O SERVIDOR
+node .\server.js
+

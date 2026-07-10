@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>OverTalk — Mobile Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Outfit:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg:            #0a0a0c;
+            --amber:         #f59e0b;
+            --amber-glow:    rgba(245, 158, 11, 0.25);
+            --amber-dark:    #b45309;
+            --teal:          #14b8a6;
+            --teal-glow:     rgba(20, 184, 166, 0.25);
+            --danger:        #ef4444;
+            --danger-glow:   rgba(239, 68, 68, 0.3);
+            --glass:         rgba(14, 14, 18, 0.88);
+            --card:          rgba(255, 255, 255, 0.04);
+            --border:        rgba(255, 255, 255, 0.08);
+            --text-main:     #f8fafc;
+            --text-sub:      #94a3b8;
+            --font-sans:     'Inter', sans-serif;
+            --font-display:  'Outfit', sans-serif;
+            --font-mono:     'JetBrains Mono', monospace;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg);
+            color: var(--text-main);
+            height: 100dvh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            background-image:
+                radial-gradient(circle at 10% 0%, rgba(245, 158, 11, 0.07) 0%, transparent 40%),
+                radial-gradient(circle at 90% 100%, rgba(20, 184, 166, 0.05) 0%, transparent 40%);
+        }
+
+        /* ─── HEADER ─── */
+        header {
+            background: var(--glass);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            padding: calc(env(safe-area-inset-top) + 14px) 20px 14px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-box {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, var(--amber), var(--amber-dark));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-display);
+            font-weight: 900;
+            font-size: 17px;
+            color: #000;
+            box-shadow: 0 0 18px var(--amber-glow);
+            flex-shrink: 0;
+        }
+
+        .brand-name {
+            font-family: var(--font-display);
+            font-weight: 900;
+            font-size: 20px;
+            letter-spacing: -0.5px;
+            line-height: 1;
+        }
+
+        .brand-name span { font-weight: 300; color: var(--text-sub); }
+        .brand-sub {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--amber);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+
+        .status-pill {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid var(--border);
+            padding: 6px 14px;
+            border-radius: 30px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            color: var(--danger);
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            text-transform: uppercase;
+            transition: all 0.4s;
+        }
+
+        .status-pill.online {
+            color: var(--teal);
+            border-color: var(--teal-glow);
+            background: rgba(20, 184, 166, 0.07);
+        }
+
+        .dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        /* ─── CHAT ─── */
+        #chat {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            scrollbar-width: none;
+        }
+        #chat::-webkit-scrollbar { display: none; }
+
+        .bubble {
+            max-width: 88%;
+            padding: 14px 18px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            animation: bubbleIn 0.35s cubic-bezier(0.18, 0.89, 0.32, 1.2);
+            position: relative;
+        }
+
+        @keyframes bubbleIn {
+            from { opacity: 0; transform: translateY(20px) scale(0.95); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .bubble.me {
+            align-self: flex-end;
+            background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(180,83,9,0.15));
+            border-color: rgba(245,158,11,0.25);
+            border-bottom-right-radius: 4px;
+        }
+
+        .bubble.native {
+            align-self: flex-start;
+            background: rgba(20,184,166,0.07);
+            border-color: rgba(20,184,166,0.15);
+            border-bottom-left-radius: 4px;
+        }
+
+        .bubble-label {
+            font-family: var(--font-mono);
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.7;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .bubble.me   .bubble-label { color: var(--amber); }
+        .bubble.native .bubble-label { color: var(--teal); }
+
+        .translation {
+            font-family: var(--font-display);
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text-main);
+            display: block;
+            line-height: 1.4;
+            margin-bottom: 4px;
+        }
+
+        .original {
+            font-size: 12px;
+            color: var(--text-sub);
+            font-style: italic;
+            display: block;
+            line-height: 1.4;
+        }
+
+        /* ─── CONTROLS ─── */
+        .controls {
+            padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
+            background: var(--glass);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border-top: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            flex-shrink: 0;
+        }
+
+        /* Volume Meter */
+        .vol-meter-wrap {
+            width: 160px; height: 6px;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .vol-meter-inner {
+            height: 100%; width: 0%;
+            background: linear-gradient(90deg, var(--amber), var(--teal));
+            transition: width 0.05s;
+            box-shadow: 0 0 10px var(--amber);
+        }
+
+        /* Mic button */
+        .mic-wrap {
+            position: relative;
+            width: 88px; height: 88px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mic-ring {
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            border: 2px solid var(--amber);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .mic-btn {
+            width: 72px; height: 72px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--amber) 0%, var(--amber-dark) 100%);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 28px var(--amber-glow), 0 0 0 0 var(--amber);
+            cursor: pointer;
+            outline: none;
+            -webkit-tap-highlight-color: transparent;
+            transition: transform 0.15s, box-shadow 0.15s;
+            z-index: 2;
+        }
+
+        .mic-btn svg { width: 30px; height: 30px; color: #000; }
+
+        .mic-btn.active {
+            background: linear-gradient(135deg, var(--danger), #c0122e);
+            box-shadow: 0 0 0 6px rgba(239,68,68,0.15), 0 8px 28px var(--danger-glow);
+            transform: scale(0.95);
+        }
+
+        .mic-btn.active + .mic-ring {
+            opacity: 1;
+            border-color: var(--danger);
+            animation: ringPulse 1.4s infinite;
+        }
+
+        @keyframes ringPulse {
+            0%   { transform: scale(1); opacity: 0.7; }
+            100% { transform: scale(1.7); opacity: 0; }
+        }
+
+        .mic-hint {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-sub);
+            text-transform: uppercase;
+            letter-spacing: 2.5px;
+        }
+
+        /* ─── ERROR ─── */
+        #error-msg {
+            position: fixed; top: 100px; left: 20px; right: 20px; z-index: 1000;
+            background: var(--danger); color: white; padding: 15px; border-radius: 14px;
+            text-align: center; font-size: 13px; font-weight: 600; display: none;
+            box-shadow: 0 10px 30px var(--danger-glow);
+        }
+
+        /* ─── PIN SCREEN ─── */
+        #pin-screen {
+            position: fixed; inset: 0;
+            background: var(--bg);
+            background-image:
+                radial-gradient(circle at 20% 30%, rgba(245, 158, 11, 0.06) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(20, 184, 166, 0.05) 0%, transparent 50%);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 32px 24px;
+        }
+
+        .pin-card {
+            width: 100%;
+            max-width: 360px;
+            background: rgba(14, 14, 18, 0.9);
+            border: 1px solid var(--border);
+            border-radius: 28px;
+            padding: 40px 32px;
+            text-align: center;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 30px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+
+        .pin-card .logo-box {
+            width: 56px; height: 56px;
+            font-size: 22px;
+            margin: 0 auto 20px;
+        }
+
+        .pin-card h2 {
+            font-family: var(--font-display);
+            font-weight: 900;
+            font-size: 26px;
+            margin-bottom: 6px;
+        }
+
+        .pin-card h2 span { font-weight: 300; color: var(--text-sub); }
+
+        .pin-sub {
+            font-size: 13px;
+            color: var(--text-sub);
+            line-height: 1.5;
+            margin-bottom: 32px;
+        }
+
+        .pin-sub strong { color: var(--amber); }
+
+        .pin-input-wrap {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 28px;
+        }
+
+        .pin-digit {
+            width: 56px; height: 64px;
+            background: rgba(0,0,0,0.4);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            color: var(--amber);
+            font-family: var(--font-mono);
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            -moz-appearance: textfield;
+        }
+
+        .pin-digit::-webkit-outer-spin-button,
+        .pin-digit::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+        .pin-digit:focus {
+            border-color: var(--amber);
+            box-shadow: 0 0 0 3px var(--amber-glow);
+        }
+
+        .btn-connect {
+            width: 100%;
+            background: linear-gradient(135deg, var(--amber), var(--amber-dark));
+            color: #000;
+            font-family: var(--font-display);
+            font-weight: 900;
+            font-size: 16px;
+            letter-spacing: 0.5px;
+            border: none;
+            padding: 18px;
+            border-radius: 14px;
+            cursor: pointer;
+            box-shadow: 0 8px 24px var(--amber-glow);
+            transition: transform 0.15s, opacity 0.15s;
+        }
+
+        .btn-connect:active { transform: scale(0.97); opacity: 0.9; }
+
+        #pinError {
+            margin-top: 16px;
+            color: var(--danger);
+            font-size: 13px;
+            font-weight: 600;
+            min-height: 20px;
+        }
+
+        /* ─── UTILITY ─── */
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <!-- ─── PIN SCREEN ─── -->
+    <div id="pin-screen">
+        <div class="pin-card">
+            <div class="logo-box">OT</div>
+            <h2>Over<span>Talk</span></h2>
+            <p class="pin-sub">Digite o <strong>PIN de 4 dígitos</strong> exibido no painel do PC para entrar na sala privada.</p>
+
+            <div class="pin-input-wrap">
+                <input type="number" class="pin-digit" id="d0" maxlength="1" min="0" max="9" inputmode="numeric" autocomplete="off">
+                <input type="number" class="pin-digit" id="d1" maxlength="1" min="0" max="9" inputmode="numeric" autocomplete="off">
+                <input type="number" class="pin-digit" id="d2" maxlength="1" min="0" max="9" inputmode="numeric" autocomplete="off">
+                <input type="number" class="pin-digit" id="d3" maxlength="1" min="0" max="9" inputmode="numeric" autocomplete="off">
+                <input type="number" class="pin-digit" id="d4" maxlength="1" min="0" max="9" inputmode="numeric" autocomplete="off">
+                <input type="number" class="pin-digit" id="d5" maxlength="1" min="0" max="9" inputmode="numeric" autocomplete="off">
+            </div>
+
+            <button id="btnConnect" class="btn-connect">Entrar na Sala</button>
+            <div id="pinError"></div>
+        </div>
+    </div>
+
+    <!-- ─── MAIN APP ─── -->
+    <header id="main-header" class="hidden">
+        <div class="brand">
+            <div class="logo-box">OT</div>
+            <div>
+                <div class="brand-name">Over<span>Talk</span></div>
+                <div class="brand-sub">Mobile Hub</div>
+            </div>
+        </div>
+        <div id="statusPill" class="status-pill">
+            <span class="dot"></span>
+            <span id="statusText">Offline</span>
+        </div>
+    </header>
+
+    <div id="error-msg">⚠️ Permissão de Microfone Negada.</div>
+
+    <div id="chat">
+        <div class="bubble native" style="opacity: 0.4;">
+            <span class="bubble-label">Sistema</span>
+            <span class="translation">OverTalk inicializado.</span>
+            <span class="original">Sistemas prontos para tradução.</span>
+        </div>
+    </div>
+
+    <div class="controls hidden" id="main-controls">
+        <div class="vol-meter-wrap" id="volWrap">
+            <div class="vol-meter-inner" id="volInner"></div>
+        </div>
+
+        <div class="mic-wrap">
+            <button id="micBtn" class="mic-btn">
+                <!-- Mic SVG icon -->
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                    <line x1="12" y1="19" x2="12" y2="23"/>
+                    <line x1="8" y1="23" x2="16" y2="23"/>
+                </svg>
+            </button>
+            <div class="mic-ring"></div>
+        </div>
+
+        <div id="micStatus" class="mic-hint">Segure para Falar</div>
+    </div>
+
+<script>
+    let sessionToken = localStorage.getItem('ovt_token') || null;
+
+    const pinScreen    = document.getElementById('pin-screen');
+    const mainHeader   = document.getElementById('main-header');
+    const mainControls = document.getElementById('main-controls');
+    const chat         = document.getElementById('chat');
+    const statusPill   = document.getElementById('statusPill');
+    const statusText   = document.getElementById('statusText');
+    const micBtn       = document.getElementById('micBtn');
+
+    // ─── PIN Digit Navigation ───
+    const digits = [document.getElementById('d0'), document.getElementById('d1'), document.getElementById('d2'), document.getElementById('d3'), document.getElementById('d4'), document.getElementById('d5')];
+    digits.forEach((d, i) => {
+        d.addEventListener('input', () => {
+            const val = d.value.replace(/[^0-9]/g, '');
+            d.value = val.slice(-1);
+            if (val && i < 3) digits[i + 1].focus();
+        });
+        d.addEventListener('keydown', e => {
+            if (e.key === 'Backspace' && !d.value && i > 0) digits[i - 1].focus();
+        });
+    });
+
+    function getPIN() { return digits.map(d => d.value).join(''); }
+
+    // ─── SSE ───
+    let es = null, reconnectTimeout = null;
+
+    function connectSSE() {
+        if (!sessionToken) return;
+        if (es) es.close();
+        es = new EventSource(`/events?token=${sessionToken}`);
+
+        es.onopen = () => {
+            statusPill.classList.add('online');
+            statusText.innerText = 'Online';
+            if (reconnectTimeout) clearTimeout(reconnectTimeout);
+        };
+
+        es.onerror = () => {
+            statusPill.classList.remove('online');
+            statusText.innerText = 'Reconectando...';
+            es.close();
+            reconnectTimeout = setTimeout(connectSSE, 3000);
+        };
+
+        es.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            if (data.type === 'translation') {
+                addBubble(data.source, data.original, data.translated, data.isPartial, data.speaker, data.id);
+            } else if (data.type === 'history') {
+                data.messages.forEach(m => addBubble(m.source, m.original, m.translated, false, m.speaker, m.id));
+            } else if (data.type === 'heartbeat') {
+                const ping = Date.now() - data.time;
+                statusText.innerText = `Online · ${ping}ms`;
+            }
+        };
+    }
+
+    function addBubble(source, original, translated, isPartial, speaker, msgId = null) {
+        if (msgId && document.querySelector(`.bubble[data-id="${msgId}"]`)) return;
+
+        const lastBubble = chat.lastElementChild;
+        const isSelf = source === 'mic';
+        const speakerName = speaker || (isSelf ? 'Você' : 'Native');
+
+        if (lastBubble && lastBubble.getAttribute('data-source') === source && lastBubble.getAttribute('data-partial') === 'true') {
+            lastBubble.querySelector('.translation').innerText = translated;
+            lastBubble.querySelector('.original').innerText    = original;
+            lastBubble.setAttribute('data-partial', isPartial ? 'true' : 'false');
+            if (msgId && !isPartial) lastBubble.setAttribute('data-id', msgId);
+            if (!isPartial) lastBubble.style.opacity = '1';
+        } else {
+            const div = document.createElement('div');
+            div.className = `bubble ${isSelf ? 'me' : 'native'}`;
+            div.setAttribute('data-source', source);
+            div.setAttribute('data-partial', isPartial ? 'true' : 'false');
+            if (msgId && !isPartial) div.setAttribute('data-id', msgId);
+            if (isPartial) div.style.opacity = '0.65';
+            div.innerHTML = `
+                <span class="bubble-label">${speakerName.toUpperCase()}</span>
+                <span class="translation">${translated}</span>
+                <span class="original">${original}</span>
+            `;
+            chat.appendChild(div);
+        }
+        chat.scrollTop = chat.scrollHeight;
+        if (!isPartial && navigator.vibrate) navigator.vibrate(50);
+    }
+
+    // ─── Short-poll fallback ───
+    setInterval(async () => {
+        if (!sessionToken) return;
+        try {
+            const res     = await fetch(`/history_sync?token=${sessionToken}`);
+            const history = await res.json();
+            history.forEach(m => addBubble(m.source, m.original, m.translated, false, m.speaker, m.id));
+        } catch (e) {}
+    }, 5000);
+
+    // ─── Mic Recording ───
+    let audioCtx = null, processor = null, stream = null, audioData = [];
+
+    async function startRecording() {
+        try {
+            if (!stream) {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true }
+                });
+            }
+            if (!audioCtx || audioCtx.state === 'closed') {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
+            }
+            if (audioCtx.state === 'suspended') await audioCtx.resume();
+
+            const src = audioCtx.createMediaStreamSource(stream);
+            processor  = audioCtx.createScriptProcessor(4096, 1, 1);
+            audioData  = [];
+
+            processor.onaudioprocess = (e) => {
+                const inp = e.inputBuffer.getChannelData(0);
+                let sum = 0;
+                for (let i = 0; i < inp.length; i++) sum += inp[i] * inp[i];
+                const rms = Math.sqrt(sum / inp.length);
+                document.getElementById('volInner').style.width = Math.min(100, rms * 1000) + '%';
+
+                const boosted = new Float32Array(inp.length);
+                for (let i = 0; i < inp.length; i++) {
+                    boosted[i] = Math.max(-1, Math.min(1, inp[i] * 4.0));
+                }
+                audioData.push(boosted);
+            };
+
+            src.connect(processor);
+            processor.connect(audioCtx.destination);
+            micBtn.classList.add('active');
+            document.getElementById('volWrap').style.display = 'block';
+            document.getElementById('micStatus').innerText = '● Ouvindo...';
+            if (navigator.vibrate) navigator.vibrate([30, 20, 30]);
+        } catch (err) {
+            console.error(err);
+            document.getElementById('error-msg').style.display = 'block';
+        }
+    }
+
+    async function stopRecording() {
+        if (!processor) return;
+        micBtn.classList.remove('active');
+        document.getElementById('volWrap').style.display = 'none';
+        document.getElementById('micStatus').innerText = '⏳ Enviando...';
+        processor.disconnect();
+        processor.onaudioprocess = null;
+        processor = null;
+
+        const totalLength = audioData.reduce((a, b) => a + b.length, 0);
+        if (totalLength > 4000) {
+            const merged = new Float32Array(totalLength);
+            let offset = 0;
+            for (const buf of audioData) { merged.set(buf, offset); offset += buf.length; }
+
+            fetch(`/translate?source=mic&token=${sessionToken}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/octet-stream' },
+                body: merged.buffer
+            }).then(r => r.json()).then(json => {
+                document.getElementById('micStatus').innerText = '✓ Enviado';
+                // SSE já exibe a tradução via broadcastEvent — não duplicar aqui
+            }).catch(() => {
+                document.getElementById('micStatus').innerText = '✗ Erro';
+            }).finally(() => {
+                setTimeout(() => { document.getElementById('micStatus').innerText = 'Segure para Falar'; }, 1500);
+            });
+        } else {
+            document.getElementById('micStatus').innerText = 'Segure para Falar';
+        }
+    }
+
+    let isRecording = false;
+    function handleStart(e) { e.preventDefault(); if (isRecording) return; isRecording = true; startRecording(); }
+    function handleStop()   { if (!isRecording) return; isRecording = false; stopRecording(); }
+
+    micBtn.style.touchAction = 'none';
+    micBtn.addEventListener('pointerdown', handleStart);
+    window.addEventListener('pointerup',     handleStop);
+    window.addEventListener('pointercancel', handleStop);
+
+    // ─── PIN Logic ───
+    document.getElementById('btnConnect').addEventListener('click', async () => {
+        const pin = getPIN();
+        const err = document.getElementById('pinError');
+
+        if (pin.length !== 6) { err.innerText = 'Digite todos os 6 dígitos.'; return; }
+        err.innerText = 'Verificando...';
+
+        try {
+            const res  = await fetch('/api/pair', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pin })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                sessionToken = data.token;
+                localStorage.setItem('ovt_token', sessionToken);
+                err.innerText = '';
+                pinScreen.classList.add('hidden');
+                mainHeader.classList.remove('hidden');
+                mainControls.classList.remove('hidden');
+                chat.classList.remove('hidden');
+                connectSSE();
+            } else {
+                err.innerText = 'PIN inválido. Tente novamente.';
+                digits.forEach(d => d.value = '');
+                digits[0].focus();
+            }
+        } catch (e) {
+            err.innerText = 'Servidor inacessível. Verifique o túnel.';
+        }
+    });
+
+    // Allow Enter key to submit
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !pinScreen.classList.contains('hidden')) {
+            document.getElementById('btnConnect').click();
+        }
+    });
+
+    // Auto-connect if token already saved
+    if (sessionToken) {
+        pinScreen.classList.add('hidden');
+        mainHeader.classList.remove('hidden');
+        mainControls.classList.remove('hidden');
+        connectSSE();
+    } else {
+        chat.classList.add('hidden');
+        digits[0].focus();
+    }
+</script>
+</body>
+</html>
