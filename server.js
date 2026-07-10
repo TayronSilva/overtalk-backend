@@ -1090,12 +1090,13 @@ app.listen(PORT, () => {
     // Inicia o túnel automaticamente para poder extrair a URL
     function startTunnel() {
         console.log(`⏳ Iniciando SSH Tunnel (localhost.run) em background...`);
-        const cf = spawn('ssh', [
-            '-R', `80:127.0.0.1:${PORT}`, 
-            'nokey@localhost.run', 
-            '-o', 'StrictHostKeyChecking=no',
-            '-o', 'ServerAliveInterval=60'
-        ], { windowsHide: true });
+        try {
+            const cf = spawn('ssh', [
+                '-R', `80:127.0.0.1:${PORT}`, 
+                'nokey@localhost.run', 
+                '-o', 'StrictHostKeyChecking=no',
+                '-o', 'ServerAliveInterval=60'
+            ], { windowsHide: true });
         
         const handleTunnelData = async (d) => {
             const str = d.toString();
@@ -1126,6 +1127,10 @@ app.listen(PORT, () => {
             console.error(`⚠️ SSH Tunnel fechou inesperadamente (código ${code}). Reiniciando em 5 segundos...`);
             setTimeout(startTunnel, 5000);
         });
+        } catch (e) {
+            console.error(`⚠️ SSH Tunnel não disponível neste ambiente (${e.message}). Pulando túnel SSH.`);
+            console.log(`📋 Servidor local em http://localhost:${PORT}`);
+        }
     }
 
     startTunnel();
