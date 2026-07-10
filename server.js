@@ -1090,7 +1090,9 @@ app.listen(PORT, () => {
     console.log(`🚀 Servidor rodando na porta http://localhost:${PORT}`);
     
     // Inicia o túnel automaticamente para poder extrair a URL
+    let tunnelDisabled = false;
     function startTunnel() {
+        if (tunnelDisabled) return;
         console.log(`⏳ Iniciando SSH Tunnel (localhost.run) em background...`);
         try {
             const cf = spawn('ssh', [
@@ -1126,15 +1128,19 @@ app.listen(PORT, () => {
         cf.stderr.on('data', handleTunnelData);
 
         cf.on('error', (err) => {
+            tunnelDisabled = true;
             console.error(`⚠️ SSH Tunnel não disponível neste ambiente (${err.message}). Pulando túnel SSH.`);
             console.log(`📋 Servidor local em http://localhost:${PORT}`);
         });
 
         cf.on('close', (code) => {
-            console.error(`⚠️ SSH Tunnel fechou inesperadamente (código ${code}). Reiniciando em 5 segundos...`);
-            setTimeout(startTunnel, 5000);
+            if (!tunnelDisabled) {
+                console.error(`⚠️ SSH Tunnel fechou inesperadamente (código ${code}). Reiniciando em 5 segundos...`);
+                setTimeout(startTunnel, 5000);
+            }
         });
         } catch (e) {
+            tunnelDisabled = true;
             console.error(`⚠️ SSH Tunnel não disponível neste ambiente (${e.message}). Pulando túnel SSH.`);
             console.log(`📋 Servidor local em http://localhost:${PORT}`);
         }
