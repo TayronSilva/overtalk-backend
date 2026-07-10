@@ -37,6 +37,18 @@ const sessionRateLimiter = createInMemoryRateLimiter({
     windowMs: 60 * 1000,
     keyPrefix: 'session'
 });
+// Rate limiter for public/unauthenticated endpoints (health, root)
+const publicRateLimiter = createInMemoryRateLimiter({
+    limit: 10,
+    windowMs: 60 * 1000,
+    keyPrefix: 'public'
+});
+const publicRateLimitMiddleware = createRateLimitMiddleware({
+    limiter: publicRateLimiter,
+    keyGenerator: (req) => req.ip || req.headers['x-forwarded-for'] || 'unknown',
+    message: 'Too many requests',
+    logLabel: 'public'
+});
 const SUPABASE_URL = process.env.SUPABASE_URL || '';
 const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || '';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || '';
@@ -196,14 +208,27 @@ const ALLOWED_ORIGINS = [
 ];
 app.use((req, res, next) => {
     const origin = req.headers.origin;
-    if (origin && (ALLOWED_ORIGINS.includes(origin) || origin.endsWith('.lhr.life') || origin.endsWith('.localhost.run'))) {
+    const isAllowed = origin && (
+        ALLOWED_ORIGINS.includes(origin) ||
+        origin.endsWith('.lhr.life') ||
+        origin.endsWith('.localhost.run')
+    );
+
+    if (isAllowed) {
         res.setHeader('Access-Control-Allow-Origin', origin);
     } else if (!origin) {
-        // Same-origin requests or direct API calls (mobile, extensions)
-        res.setHeader('Access-Control-Allow-Origin', '*');
+        // No-origin requests (curl, server-to-server): allow only health check probe paths
+        const isHealthPath = req.path === '/' || req.path === '/api/health';
+        if (isHealthPath) {
+            // Allow but do NOT set wildcard for actual API routes
+            res.setHeader('Access-Control-Allow-Origin', 'null');
+        }
+        // For all other paths with no origin: CORS header intentionally omitted — browser blocks it
     } else {
+        // Unknown browser origin: reflect nothing, browser will block
         res.setHeader('Access-Control-Allow-Origin', 'https://overtalk.vercel.app');
     }
+
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
     res.setHeader('Access-Control-Max-Age', '86400');
@@ -650,12 +675,12 @@ app.post('/api/session/start', requireAuth, sessionRateLimitMiddleware, apiRateL
     res.json({ success: true, sessionId: session.id, pin: session.pin });
 });
 
-// Root health check — required by Hugging Face Spaces
-app.get('/', (req, res) => {
-    res.status(200).json({ status: 'ok', service: 'overtalk-backend' });
+// Root health check — required by Hugging Face Spaces probe (not for public consumption)
+app.get('/', publicRateLimitMiddleware, (req, res) => {
+    res.status(200).send('ok');
 });
 
-app.get('/api/health', (req, res) => {
+app.get('/api/health', publicRateLimitMiddleware, (req, res) => {
     const memory = process.memoryUsage();
     res.json({
         status: 'ok',
