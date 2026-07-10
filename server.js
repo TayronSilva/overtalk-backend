@@ -709,7 +709,7 @@ async function getTranscriber() {
 
     modelPromise = (async () => {
         // Trocado para 'base' focado em maior precisão de entendimento (accuracy) em vez de velocidade extrema.
-        const modelName = 'Xenova/whisper-base';
+        const modelName = 'Xenova/whisper-tiny';
         console.log("------------------------------------------------------------------");
         console.log(`📥 CARREGANDO MODELO TRANSCRIÇÃO: ${modelName.toUpperCase()}...`);
         console.log("------------------------------------------------------------------");
