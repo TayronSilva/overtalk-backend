@@ -708,27 +708,37 @@ async function getTranscriber() {
     if (modelPromise) return modelPromise;
 
     modelPromise = (async () => {
-        // Trocado para 'base' focado em maior precisão de entendimento (accuracy) em vez de velocidade extrema.
         const modelName = 'Xenova/whisper-tiny';
         console.log("------------------------------------------------------------------");
         console.log(`📥 CARREGANDO MODELO TRANSCRIÇÃO: ${modelName.toUpperCase()}...`);
         console.log("------------------------------------------------------------------");
-        try {
-            transcriber = await pipeline('automatic-speech-recognition', modelName, {
-                progress_callback: (data) => {
-                    if (data.status === 'progress') {
-                        process.stdout.write(`\r📥 Baixando ${data.file}: ${data.progress.toFixed(1)}%   `);
-                    } else if (data.status === 'done') {
-                        process.stdout.write(`\r✅ OK: ${data.file}           \n`);
+        
+        const MAX_RETRIES = 5;
+        for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+            try {
+                transcriber = await pipeline('automatic-speech-recognition', modelName, {
+                    progress_callback: (data) => {
+                        if (data.status === 'progress') {
+                            process.stdout.write(`\r📥 Baixando ${data.file}: ${data.progress.toFixed(1)}%   `);
+                        } else if (data.status === 'done') {
+                            process.stdout.write(`\r✅ OK: ${data.file}           \n`);
+                        }
                     }
+                });
+                console.log(`\n✅ MODELO TRANSCRIÇÃO PRONTO.`);
+                return transcriber;
+            } catch(e) {
+                console.error(`\n❌ Tentativa ${attempt}/${MAX_RETRIES} falhou: ${e.message}`);
+                if (attempt < MAX_RETRIES) {
+                    const delay = Math.min(5000 * Math.pow(2, attempt - 1), 30000);
+                    console.log(`⏳ Tentando novamente em ${delay/1000}s...`);
+                    await new Promise(r => setTimeout(r, delay));
+                } else {
+                    console.error(`❌ ERRO TRANSCRIÇÃO após ${MAX_RETRIES} tentativas:`, e.message);
+                    modelPromise = null;
+                    throw e;
                 }
-            });
-            console.log(`\n✅ MODELO TRANSCRIÇÃO PRONTO.`);
-            return transcriber;
-        } catch(e) {
-            console.error(`\n❌ ERRO TRANSCRIÇÃO:`, e.message);
-            modelPromise = null;
-            throw e;
+            }
         }
     })();
     return modelPromise;
