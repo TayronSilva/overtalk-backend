@@ -15,6 +15,9 @@ RUN npm install --omit=dev
 # Copiar código fonte
 COPY . .
 
+# Pré-carrega o modelo ONNX durante o build (evita download na inicialização)
+RUN node preload-models.js
+
 # Porta usada pelo Express
 EXPOSE 3000
 
