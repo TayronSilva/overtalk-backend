@@ -739,7 +739,7 @@ async function getTranscriber() {
     if (modelPromise) return modelPromise;
 
     modelPromise = (async () => {
-        const modelName = 'Xenova/whisper-tiny';
+        const modelName = 'Xenova/whisper-small';
         console.log("------------------------------------------------------------------");
         console.log(`📥 CARREGANDO MODELO TRANSCRIÇÃO: ${modelName.toUpperCase()}...`);
         console.log("------------------------------------------------------------------");
