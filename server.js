@@ -38,8 +38,9 @@ const sessionRateLimiter = createInMemoryRateLimiter({
     keyPrefix: 'session'
 });
 // Rate limiter for public/unauthenticated endpoints (health, root)
+// Aumentado de 10 → 60/min para absorver polling do frontend sem estourar 429
 const publicRateLimiter = createInMemoryRateLimiter({
-    limit: 10,
+    limit: 60,
     windowMs: 60 * 1000,
     keyPrefix: 'public'
 });
@@ -203,7 +204,7 @@ const app = express();
 // CORS — restrito a origens conhecidas + túnel dinâmico
 const ALLOWED_ORIGINS = [
     'https://overtalk.vercel.app',
-    'https://overtalk.vercel.app',
+    'https://tayronne-overtalk-backend.hf.space',
     'http://localhost:5173',
     'http://localhost:3000',
 ];
@@ -212,7 +213,9 @@ app.use((req, res, next) => {
     const isAllowed = origin && (
         ALLOWED_ORIGINS.includes(origin) ||
         origin.endsWith('.lhr.life') ||
-        origin.endsWith('.localhost.run')
+        origin.endsWith('.localhost.run') ||
+        origin.endsWith('.hf.space') ||
+        origin.endsWith('.vercel.app')
     );
 
     if (isAllowed) {
