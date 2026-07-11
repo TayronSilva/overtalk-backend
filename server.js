@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import http from 'http';
+import { WebSocketServer } from 'ws';
 import dns from 'dns';
 dns.setDefaultResultOrder('ipv4first');
 import { pipeline, env, AutoModel, AutoProcessor, cos_sim } from '@huggingface/transformers';
@@ -1153,8 +1155,199 @@ app.use((err, req, res, next) => {
     res.status(500).json({ error: 'Internal Server Error' });
 });
 
+// ═══════════════════════════════════════════════════════
+// WEBSOCKET — Streaming de Áudio em Tempo Real
+// ═══════════════════════════════════════════════════════
+const wsConnections = new Map(); // ws -> { sessionId, source, audioBuffer, timeout }
+
+const server = http.createServer(app);
+const wss = new WebSocketServer({ server });
+
+wss.on('connection', (ws, req) => {
+    let ctx = null;
+
+    ws.on('message', async (data, isBinary) => {
+        if (!isBinary) {
+            // JSON message: start/end config
+            try {
+                const msg = JSON.parse(data.toString());
+                if (msg.type === 'start') {
+                    const session = conversationManager.getSession(msg.sessionId);
+                    if (!session) {
+                        ws.send(JSON.stringify({ type: 'error', message: 'Sessão não encontrada.' }));
+                        return;
+                    }
+
+                    // Valida ownership
+                    let authUser = null;
+                    if (msg.token && supabase) {
+                        const { data: { user } } = await supabase.auth.getUser(msg.token);
+                        authUser = user;
+                    }
+
+                    const access = canAccessSession({
+                        session,
+                        authUser,
+                        token: msg.token,
+                        currentTime: Date.now(),
+                    });
+
+                    if (!access.allowed) {
+                        ws.send(JSON.stringify({ type: 'error', message: 'Acesso negado.' }));
+                        return;
+                    }
+
+                    ctx = {
+                        sessionId: msg.sessionId,
+                        source: msg.source || 'mic',
+                        session,
+                        audioBuffer: [],
+                        flushTimeout: null,
+                    };
+                    wsConnections.set(ws, ctx);
+                    console.log(`🎙️ [WS] Streaming iniciado: sessão=${msg.sessionId}, source=${ctx.source}`);
+                    ws.send(JSON.stringify({ type: 'started', sessionId: msg.sessionId }));
+                } else if (msg.type === 'end' && ctx) {
+                    // Finaliza — processa áudio acumulado
+                    clearTimeout(ctx.flushTimeout);
+                    await processWsAudio(ctx, ws, false);
+                    ctx = null;
+                    wsConnections.delete(ws);
+                    console.log(`🎙️ [WS] Streaming encerrado.`);
+                }
+            } catch (e) {
+                console.error('[WS] Erro ao processar mensagem JSON:', e.message);
+            }
+            return;
+        }
+
+        // Binary = Float32 PCM chunk
+        if (!ctx) return;
+
+        const buffer = Buffer.from(data);
+        const float32 = new Float32Array(buffer.buffer, buffer.byteOffset, buffer.length / 4);
+        ctx.audioBuffer.push(float32);
+        ctx.session.stats.lastActive = Date.now();
+
+        // Flush a cada ~400ms de áudio acumulado (amostragem parcial)
+        if (ctx.flushTimeout) clearTimeout(ctx.flushTimeout);
+        ctx.flushTimeout = setTimeout(async () => {
+            await processWsAudio(ctx, ws, true);
+        }, 400);
+    });
+
+    ws.on('close', () => {
+        if (ctx) {
+            clearTimeout(ctx.flushTimeout);
+            wsConnections.delete(ws);
+        }
+    });
+});
+
+async function processWsAudio(ctx, ws, isPartial) {
+    if (ctx.audioBuffer.length === 0) return;
+    ctx.flushTimeout = null;
+
+    // Concatena todos os buffers acumulados
+    const totalLen = ctx.audioBuffer.reduce((sum, arr) => sum + arr.length, 0);
+    const combined = new Float32Array(totalLen);
+    let offset = 0;
+    for (const arr of ctx.audioBuffer) {
+        combined.set(arr, offset);
+        offset += arr.length;
+    }
+    ctx.audioBuffer = []; // limpa buffer
+
+    // Se for parcial e tiver menos de 0.5s, espera mais
+    if (isPartial && combined.length < 8000) { // 0.5s @ 16kHz
+        return;
+    }
+
+    const source = ctx.source;
+
+    // Diagnóstico
+    let maxAmp = 0;
+    for (let i = 0; i < combined.length; i++) {
+        const abs = Math.abs(combined[i]);
+        if (abs > maxAmp) maxAmp = abs;
+    }
+    
+    // Silêncio? descarta
+    if (maxAmp < 0.001) return;
+
+    console.log(`🎤 [WS:${source.toUpperCase()}] Processando ${(combined.length/16000).toFixed(2)}s | Pico: ${maxAmp.toFixed(4)} | Parcial: ${isPartial}`);
+
+    try {
+        // --- Transcrição via fila ---
+        const result = await transcriptionQueue.enqueue(async () => {
+            // Identificação de Voz (Speaker ID)
+            let identifiedSpeaker = (source === 'mic') ? 'Você' : 'Native';
+
+            // Transcrição
+            const asr = await getTranscriber();
+            const sourceLang = (source === 'mic') ? 'pt' : 'en';
+            const output = await asr(combined, {
+                language: sourceLang,
+                task: 'transcribe',
+                num_beams: isPartial ? 1 : 3, // parcial = rápido, final = preciso
+                repetition_penalty: 1.1,
+            });
+
+            const originalText = output.text.trim();
+            if (!originalText) return null;
+
+            // Tradução
+            const targetLang = (source === 'mic') ? 'en' : 'pt';
+            let translatedText = '[Erro de Tradução]';
+            for (let attempt = 1; attempt <= 2; attempt++) {
+                try {
+                    const url = `https://translate.google.com/translate_a/single?client=gtx&sl=${sourceLang}&tl=${targetLang}&dt=t&q=${encodeURIComponent(originalText)}`;
+                    const fetchRes = await fetch(url, { signal: AbortSignal.timeout(8000) });
+                    if (!fetchRes.ok) throw new Error(`HTTP ${fetchRes.status}`);
+                    const json = await fetchRes.json();
+                    translatedText = json[0].map(item => item[0]).join('');
+                    break;
+                } catch (tErr) {
+                    if (attempt < 2) await new Promise(r => setTimeout(r, 1000));
+                }
+            }
+
+            return { original: originalText, translated: translatedText, speaker: identifiedSpeaker };
+        }, { isPartial });
+
+        if (result === null) return; // descartado pela fila ou silêncio
+
+        // Envia resultado via WebSocket
+        ws.send(JSON.stringify({
+            type: 'translation',
+            source,
+            speaker: result.speaker,
+            original: result.original,
+            translated: result.translated,
+            isPartial,
+        }));
+
+        // Parciais não vão pro histórico; finais sim
+        if (!isPartial) {
+            addToHistory(ctx.sessionId, {
+                type: 'translation',
+                source,
+                speaker: result.speaker,
+                original: result.original,
+                translated: result.translated,
+                isPartial: false,
+            });
+            const words = (result.translated || '').trim().split(/\s+/).filter(Boolean).length;
+            ctx.session.stats.wordCount += words;
+            ctx.session.stats.messageCount++;
+        }
+    } catch (e) {
+        console.error(`[WS] Erro no processamento:`, e.message);
+    }
+}
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`🚀 Servidor rodando na porta http://localhost:${PORT}`);
     
     // Inicia o túnel automaticamente para poder extrair a URL

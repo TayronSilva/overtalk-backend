@@ -20,6 +20,7 @@
     "google-translate-api-x": "^10.7.2",
     "jsonwebtoken": "^9.0.3",
     "mercadopago": "^3.2.0",
-    "node-global-key-listener": "^0.3.0"
+    "node-global-key-listener": "^0.3.0",
+    "ws": "^8.21.0"
   }
 }
