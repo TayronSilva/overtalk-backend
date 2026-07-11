@@ -347,16 +347,16 @@ const signupRateLimitMiddleware = createRateLimitMiddleware({
     message: 'Limite de cadastros atingido. Tente novamente em 1 hora.',
     logLabel: 'signup'
 });
-app.post('/api/auth/signup', express.json(), signupRateLimitMiddleware, async (req, res) => {
+app.post('/api/auth/signup', express.json({ limit: '10kb' }), signupRateLimitMiddleware, async (req, res) => {
     if (!supabaseAdmin) {
         return res.status(500).json({ error: 'Servidor não configurado para cadastro.' });
     }
     const { email, password } = req.body;
-    if (!email || !password) {
-        return res.status(400).json({ error: 'Email e senha são obrigatórios.' });
+    if (!email || typeof email !== 'string' || email.length > 100 || !email.includes('@')) {
+        return res.status(400).json({ error: 'Email inválido ou muito longo.' });
     }
-    if (password.length < 6) {
-        return res.status(400).json({ error: 'Senha deve ter pelo menos 6 caracteres.' });
+    if (!password || typeof password !== 'string' || password.length < 6 || password.length > 50) {
+        return res.status(400).json({ error: 'Senha deve ter entre 6 e 50 caracteres.' });
     }
     const { data, error } = await supabaseAdmin.auth.admin.createUser({
         email,
@@ -404,8 +404,11 @@ const sessionRateLimitMiddleware = createRateLimitMiddleware({
     logLabel: 'session'
 });
 
-app.post('/api/pair', express.json(), pinRateLimitMiddleware, async (req, res) => {
+app.post('/api/pair', express.json({ limit: '5kb' }), pinRateLimitMiddleware, async (req, res) => {
     const { pin } = req.body;
+    if (!pin || typeof pin !== 'string' || pin.length > 10) {
+        return res.status(400).json({ success: false, error: 'Formato de PIN inválido' });
+    }
     const authToken = req.headers.authorization?.split(' ')[1];
     let session = conversationManager.getSessionByPin(pin);
 
@@ -561,7 +564,7 @@ app.post('/api/account/upgrade', requireAuth, (req, res) => {
 });
 
 // --- MERCADO PAGO: CRIAR ASSINATURA ---
-app.post('/api/payment/create_subscription', requireAuth, express.json(), async (req, res) => {
+app.post('/api/payment/create_subscription', requireAuth, express.json({ limit: '5kb' }), async (req, res) => {
     if (!mpPreApproval) {
         return res.status(503).json({ error: 'Mercado Pago não configurado no servidor.' });
     }
@@ -570,7 +573,7 @@ app.post('/api/payment/create_subscription', requireAuth, express.json(), async 
     if (!userId) return res.status(401).json({ error: 'Usuário não autenticado' });
 
     const { tier } = req.body;
-    if (!tier || !MP_PLAN_PRICES[tier]) {
+    if (!tier || typeof tier !== 'string' || tier.length > 20 || !MP_PLAN_PRICES[tier]) {
         return res.status(400).json({ error: 'Plano inválido', availableTiers: Object.keys(MP_PLAN_PRICES) });
     }
 
@@ -614,7 +617,7 @@ app.post('/api/payment/create_subscription', requireAuth, express.json(), async 
 });
 
 // --- MERCADO PAGO: WEBHOOK ---
-app.post('/api/payment/webhook', express.json(), async (req, res) => {
+app.post('/api/payment/webhook', express.json({ limit: '50kb' }), async (req, res) => {
     // Responde 200 imediatamente pro MP não ficar reenviando
     res.status(200).json({ received: true });
 
@@ -1095,16 +1098,32 @@ app.get('/trigger', requireConversationOwnership, (req, res) => {
 });
 
 // --- FEEDBACK ANÔNIMO ---
-app.use(express.json());
-app.post('/api/feedback', (req, res) => {
+const feedbackRateLimiter = createInMemoryRateLimiter({
+    limit: 5,
+    windowMs: 60 * 1000,
+    keyPrefix: 'feedback'
+});
+const feedbackRateLimitMiddleware = createRateLimitMiddleware({
+    limiter: feedbackRateLimiter,
+    keyGenerator: (req) => req.ip || 'unknown',
+    message: 'Limite de feedbacks atingido. Tente novamente em 1 minuto.',
+    logLabel: 'feedback'
+});
+
+app.post('/api/feedback', express.json({ limit: '50kb' }), feedbackRateLimitMiddleware, (req, res) => {
     try {
         const { rating, category, message } = req.body;
-        if (!rating || rating < 1 || rating > 5) {
+        if (typeof rating !== 'number' || rating < 1 || rating > 5) {
             return res.status(400).json({ error: 'Rating inválido (1-5).' });
         }
+        
+        // Sanitização e limitação de comprimento
+        const safeCategory = typeof category === 'string' ? category.substring(0, 50) : 'outro';
+        const safeMessage = typeof message === 'string' ? message.substring(0, 1000) : '';
+
         db.prepare(`INSERT INTO feedback (rating, category, message) VALUES (?, ?, ?)`)
-          .run(rating || null, category || 'outro', message || '');
-        console.log(`💬 [FEEDBACK] Rating: ${rating}/5 | Categoria: ${category} | "${message?.substring(0,50)}"`);
+          .run(rating, safeCategory, safeMessage);
+        console.log(`💬 [FEEDBACK] Rating: ${rating}/5 | Categoria: ${safeCategory} | "${safeMessage.substring(0,50)}"`);
         res.json({ success: true });
     } catch (e) {
         console.error('[FEEDBACK] Erro ao salvar:', e.message);
@@ -1124,6 +1143,17 @@ app.get('/api/feedback', (req, res) => {
     }
     const rows = db.prepare(`SELECT * FROM feedback ORDER BY created_at DESC LIMIT 100`).all();
     res.json(rows);
+});
+
+// --- GLOBAL ERROR HANDLER (Defense contra payloads zoados e falhas do Express) ---
+app.use((err, req, res, next) => {
+    console.error(`🚨 [EXPRESS ERROR] ${req.method} ${req.path}`, err.message);
+    // Erros de parsing de JSON (express.json)
+    if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+        return res.status(400).json({ error: 'JSON malformado.' });
+    }
+    // Qualquer outro erro não tratado garante um JSON válido na saída
+    res.status(500).json({ error: 'Internal Server Error' });
 });
 
 const PORT = process.env.PORT || 3000;
