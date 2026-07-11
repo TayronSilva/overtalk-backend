@@ -595,11 +595,7 @@ app.post('/api/payment/create_subscription', requireAuth, express.json({ limit: 
                     transaction_amount: price / 100,
                     currency_id: 'BRL',
                 },
-                back_url: {
-                    success: `${req.headers.origin || 'https://overtalk.vercel.app'}/pagamento-sucesso.html`,
-                    failure: `${req.headers.origin || 'https://overtalk.vercel.app'}/pagamento-cancelado.html`,
-                    pending: `${req.headers.origin || 'https://overtalk.vercel.app'}/pagamento-cancelado.html`,
-                },
+                back_url: `${req.headers.origin || 'https://overtalk.vercel.app'}/pagamento-sucesso.html`,
                 status: 'authorized',
             },
         });
