@@ -11,7 +11,7 @@ config(); // Carrega .env ANTES de qualquer process.env
 import fs from 'fs';
 import crypto from 'crypto';
 import db, { canStartSession, startSession, getSessionsToday, getUserInfo, getUserPlan, checkLimit, upgradeUserTier, createPendingTransaction, getPendingTransaction, updatePendingStatus, PLANS } from './src/db/database.js';
-import { MercadoPagoConfig, PreApproval, Payment } from 'mercadopago';
+import { MercadoPagoConfig, PreApproval, Payment, PreApprovalPlan } from 'mercadopago';
 import { createClient } from '@supabase/supabase-js';
 import { conversationManager } from './src/services/ConversationManager.js';
 import { canAccessSession } from './src/services/sessionAccess.js';
@@ -58,6 +58,7 @@ const supabase = SUPABASE_URL ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 const MERCADO_PAGO_ACCESS_TOKEN = process.env.MERCADO_PAGO_ACCESS_TOKEN || '';
 const mpClient = MERCADO_PAGO_ACCESS_TOKEN ? new MercadoPagoConfig({ accessToken: MERCADO_PAGO_ACCESS_TOKEN }) : null;
 const mpPreApproval = mpClient ? new PreApproval(mpClient) : null;
+const mpPreApprovalPlan = mpClient ? new PreApprovalPlan(mpClient) : null;
 if (!mpClient) {
     console.warn("⚠️ [MP] Mercado Pago não configurado. Payment routes desabilitadas.");
 }
@@ -565,7 +566,7 @@ app.post('/api/account/upgrade', requireAuth, (req, res) => {
 
 // --- MERCADO PAGO: CRIAR ASSINATURA ---
 app.post('/api/payment/create_subscription', requireAuth, express.json({ limit: '5kb' }), async (req, res) => {
-    if (!mpPreApproval) {
+    if (!mpPreApprovalPlan) {
         return res.status(503).json({ error: 'Mercado Pago não configurado no servidor.' });
     }
     const userId = req.user?.id;
@@ -584,27 +585,24 @@ app.post('/api/payment/create_subscription', requireAuth, express.json({ limit: 
         const externalReference = `${userId}_${tier}_${Date.now()}`;
         createPendingTransaction(externalReference, userId, tier);
 
-        const preapproval = await mpPreApproval.create({
+        const plan = await mpPreApprovalPlan.create({
             body: {
                 reason: `OverTalk — ${planName}`,
-                external_reference: externalReference,
-                payer_email: userEmail,
                 auto_recurring: {
                     frequency: 1,
                     frequency_type: 'months',
                     transaction_amount: price / 100,
                     currency_id: 'BRL',
                 },
-                back_url: `${req.headers.origin || 'https://overtalk.vercel.app'}/pagamento-sucesso.html`,
-                status: 'authorized',
+                back_url: `${req.headers.origin || 'https://overtalk.vercel.app'}/pagamento-sucesso.html`
             },
         });
 
-        console.log(`💳 [MP] Assinatura criada para ${userId} (${tier}): ${preapproval.id}`);
+        console.log(`💳 [MP] Checkout de assinatura criado para ${userId} (${tier}): ${plan.id}`);
         res.json({
             success: true,
-            subscriptionId: preapproval.id,
-            initPoint: preapproval.init_point || preapproval.sandbox_init_point,
+            subscriptionId: plan.id,
+            initPoint: plan.init_point,
         });
     } catch (err) {
         console.error('❌ [MP] Erro ao criar assinatura:', err.message);
