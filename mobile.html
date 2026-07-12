@@ -664,13 +664,24 @@
     window.addEventListener('pointerup',     handleStop);
     window.addEventListener('pointercancel', handleStop);
 
-    // ─── PIN Logic ───
-    document.getElementById('btnConnect').addEventListener('click', async () => {
-        const pin = getPIN();
-        const err = document.getElementById('pinError');
+    // --- QR Auto-connect (PIN na URL) ---
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlPin = urlParams.get('pin');
 
-        if (pin.length !== 6) { err.innerText = 'Digite todos os 6 dígitos.'; return; }
+    // ─── PIN Logic ───
+    async function connectWithPin(pin) {
+        const err = document.getElementById('pinError');
         err.innerText = 'Verificando...';
+
+        // Limpa sessão anterior
+        if (sessionToken) {
+            if (es) { es.close(); es = null; }
+            if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+            if (audioCtx && audioCtx.state !== 'closed') { audioCtx.close().catch(()=>{}); audioCtx = null; }
+            processor = null; audioData = [];
+            chat.innerHTML = '';
+            localStorage.removeItem('ovt_token');
+        }
 
         try {
             const res  = await fetch('/api/pair', {
@@ -697,6 +708,13 @@
         } catch (e) {
             err.innerText = 'Servidor inacessível. Verifique o túnel.';
         }
+    }
+
+    document.getElementById('btnConnect').addEventListener('click', async () => {
+        const pin = getPIN();
+        const err = document.getElementById('pinError');
+        if (pin.length !== 6) { err.innerText = 'Digite todos os 6 dígitos.'; return; }
+        await connectWithPin(pin);
     });
 
     // Allow Enter key to submit
@@ -712,6 +730,10 @@
         mainHeader.classList.remove('hidden');
         mainControls.classList.remove('hidden');
         connectSSE();
+    } else if (urlPin && /^\d{6}$/.test(urlPin)) {
+        document.querySelector('.pin-sub').innerHTML = '🔗 Conectando via QR Code...';
+        digits.forEach((d, i) => { d.value = urlPin[i]; });
+        setTimeout(() => connectWithPin(urlPin), 400);
     } else {
         chat.classList.add('hidden');
         digits[0].focus();

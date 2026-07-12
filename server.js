@@ -675,6 +675,21 @@ app.post('/api/session/start', requireAuth, sessionRateLimitMiddleware, apiRateL
     res.json({ success: true, sessionId: session.id, pin: session.pin });
 });
 
+// --- RENEW PIN (mantém sessão, gera novo PIN) ---
+app.post('/api/session/renew', requireAuth, (req, res) => {
+    const userId = req.user?.id;
+    if (!userId) {
+        return res.status(401).json({ success: false, error: 'Usuário não autenticado' });
+    }
+    const session = conversationManager.getUserSession(userId);
+    if (!session) {
+        return res.status(404).json({ success: false, error: 'Nenhuma sessão ativa' });
+    }
+    const newPin = conversationManager.refreshPin(session.id);
+    console.log(`🔄 [PIN] Sessão ${session.id} renovada: ${newPin}`);
+    res.json({ success: true, pin: newPin, pinExpiresAt: session.pinExpiresAt });
+});
+
 // Root health check — required by Hugging Face Spaces probe (not for public consumption)
 app.get('/', publicRateLimitMiddleware, (req, res) => {
     res.status(200).send('ok');
