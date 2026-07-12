@@ -980,6 +980,12 @@ app.post('/translate', requireConversationOwnership, async (req, res) => {
             if (abs > maxAmp) maxAmp = abs;
         }
         console.log(`🎤 [${source.toUpperCase()}] Áudio recebido: ${(float32Audio.length / 16000).toFixed(2)}s | Pico: ${maxAmp.toFixed(4)} | Fila: ${transcriptionQueue.depth}/${transcriptionQueue.maxQueueDepth} | Rodando: ${transcriptionQueue.running}`);
+
+        // 🔇 Rejeita áudio sem energia (evita alucinação do modelo com ruído de fundo)
+        if (maxAmp < 0.001) {
+            console.log(`🔇 [${source.toUpperCase()}] Áudio descartado — silêncio (pico: ${maxAmp.toFixed(4)})`);
+            return res.json({ discarded: true, reason: 'silence' });
+        }
     }
 
     // Enfileira o job de transcrição — parciais são descartados se a fila estiver cheia
