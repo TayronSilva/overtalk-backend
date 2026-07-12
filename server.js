@@ -310,7 +310,7 @@ setInterval(() => {
     }
 }, 60000);
 
-app.post('/api/sse/token', requireAuth, (req, res) => {
+app.get('/api/sse/token', requireAuth, (req, res) => {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ error: 'Não autorizado.' });
     const sseToken = generateSseToken(userId);
