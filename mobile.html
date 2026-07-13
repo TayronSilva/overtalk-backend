@@ -1,743 +1,657 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>OverTalk — Mobile Hub</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Outfit:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg:            #0a0a0c;
-            --amber:         #f59e0b;
-            --amber-glow:    rgba(245, 158, 11, 0.25);
-            --amber-dark:    #b45309;
-            --teal:          #14b8a6;
-            --teal-glow:     rgba(20, 184, 166, 0.25);
-            --danger:        #ef4444;
-            --danger-glow:   rgba(239, 68, 68, 0.3);
-            --glass:         rgba(14, 14, 18, 0.88);
-            --card:          rgba(255, 255, 255, 0.04);
-            --border:        rgba(255, 255, 255, 0.08);
-            --text-main:     #f8fafc;
-            --text-sub:      #94a3b8;
-            --font-sans:     'Inter', sans-serif;
-            --font-display:  'Outfit', sans-serif;
-            --font-mono:     'JetBrains Mono', monospace;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body {
-            font-family: var(--font-sans);
-            background: var(--bg);
-            color: var(--text-main);
-            height: 100dvh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            background-image:
-                radial-gradient(circle at 10% 0%, rgba(245, 158, 11, 0.07) 0%, transparent 40%),
-                radial-gradient(circle at 90% 100%, rgba(20, 184, 166, 0.05) 0%, transparent 40%);
-        }
-
-        /* ─── HEADER ─── */
-        header {
-            background: var(--glass);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
-            padding: calc(env(safe-area-inset-top) + 14px) 20px 14px;
-            border-bottom: 1px solid var(--border);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-shrink: 0;
-        }
-
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .logo-box {
-            width: 38px;
-            height: 38px;
-            background: linear-gradient(135deg, var(--amber), var(--amber-dark));
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-family: var(--font-display);
-            font-weight: 900;
-            font-size: 17px;
-            color: #000;
-            box-shadow: 0 0 18px var(--amber-glow);
-            flex-shrink: 0;
-        }
-
-        .brand-name {
-            font-family: var(--font-display);
-            font-weight: 900;
-            font-size: 20px;
-            letter-spacing: -0.5px;
-            line-height: 1;
-        }
-
-        .brand-name span { font-weight: 300; color: var(--text-sub); }
-        .brand-sub {
-            font-size: 10px;
-            font-weight: 600;
-            color: var(--amber);
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            margin-top: 2px;
-        }
-
-        .status-pill {
-            background: rgba(0,0,0,0.4);
-            border: 1px solid var(--border);
-            padding: 6px 14px;
-            border-radius: 30px;
-            font-size: 10px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            color: var(--danger);
-            display: flex;
-            align-items: center;
-            gap: 7px;
-            text-transform: uppercase;
-            transition: all 0.4s;
-        }
-
-        .status-pill.online {
-            color: var(--teal);
-            border-color: var(--teal-glow);
-            background: rgba(20, 184, 166, 0.07);
-        }
-
-        .dot {
-            width: 6px; height: 6px;
-            border-radius: 50%;
-            background: currentColor;
-            box-shadow: 0 0 8px currentColor;
-        }
-
-        /* ─── CHAT ─── */
-        #chat {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-            scrollbar-width: none;
-        }
-        #chat::-webkit-scrollbar { display: none; }
-
-        .bubble {
-            max-width: 88%;
-            padding: 14px 18px;
-            border-radius: 20px;
-            border: 1px solid var(--border);
-            animation: bubbleIn 0.35s cubic-bezier(0.18, 0.89, 0.32, 1.2);
-            position: relative;
-        }
-
-        @keyframes bubbleIn {
-            from { opacity: 0; transform: translateY(20px) scale(0.95); }
-            to   { opacity: 1; transform: translateY(0) scale(1); }
-        }
-
-        .bubble.me {
-            align-self: flex-end;
-            background: linear-gradient(135deg, rgba(245,158,11,0.2), rgba(180,83,9,0.15));
-            border-color: rgba(245,158,11,0.25);
-            border-bottom-right-radius: 4px;
-        }
-
-        .bubble.native {
-            align-self: flex-start;
-            background: rgba(20,184,166,0.07);
-            border-color: rgba(20,184,166,0.15);
-            border-bottom-left-radius: 4px;
-        }
-
-        .bubble-label {
-            font-family: var(--font-mono);
-            font-size: 9px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            opacity: 0.7;
-            display: block;
-            margin-bottom: 6px;
-        }
-
-        .bubble.me   .bubble-label { color: var(--amber); }
-        .bubble.native .bubble-label { color: var(--teal); }
-
-        .translation {
-            font-family: var(--font-display);
-            font-size: 17px;
-            font-weight: 600;
-            color: var(--text-main);
-            display: block;
-            line-height: 1.4;
-            margin-bottom: 4px;
-        }
-
-        .original {
-            font-size: 12px;
-            color: var(--text-sub);
-            font-style: italic;
-            display: block;
-            line-height: 1.4;
-        }
-
-        /* ─── CONTROLS ─── */
-        .controls {
-            padding: 24px 20px calc(24px + env(safe-area-inset-bottom));
-            background: var(--glass);
-            backdrop-filter: blur(30px);
-            -webkit-backdrop-filter: blur(30px);
-            border-top: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 14px;
-            flex-shrink: 0;
-        }
-
-        /* Volume Meter */
-        .vol-meter-wrap {
-            width: 160px; height: 6px;
-            background: rgba(0,0,0,0.5);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            overflow: hidden;
-            display: none;
-        }
-
-        .vol-meter-inner {
-            height: 100%; width: 0%;
-            background: linear-gradient(90deg, var(--amber), var(--teal));
-            transition: width 0.05s;
-            box-shadow: 0 0 10px var(--amber);
-        }
-
-        /* Mic button */
-        .mic-wrap {
-            position: relative;
-            width: 88px; height: 88px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .mic-ring {
-            position: absolute;
-            inset: -4px;
-            border-radius: 50%;
-            border: 2px solid var(--amber);
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-
-        .mic-btn {
-            width: 72px; height: 72px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--amber) 0%, var(--amber-dark) 100%);
-            border: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 8px 28px var(--amber-glow), 0 0 0 0 var(--amber);
-            cursor: pointer;
-            outline: none;
-            -webkit-tap-highlight-color: transparent;
-            transition: transform 0.15s, box-shadow 0.15s;
-            z-index: 2;
-        }
-
-        .mic-btn svg { width: 30px; height: 30px; color: #000; }
-
-        .mic-btn.active {
-            background: linear-gradient(135deg, var(--danger), #c0122e);
-            box-shadow: 0 0 0 6px rgba(239,68,68,0.15), 0 8px 28px var(--danger-glow);
-            transform: scale(0.95);
-        }
-
-        .mic-btn.active + .mic-ring {
-            opacity: 1;
-            border-color: var(--danger);
-            animation: ringPulse 1.4s infinite;
-        }
-
-        @keyframes ringPulse {
-            0%   { transform: scale(1); opacity: 0.7; }
-            100% { transform: scale(1.7); opacity: 0; }
-        }
-
-        .mic-hint {
-            font-family: var(--font-mono);
-            font-size: 10px;
-            font-weight: 700;
-            color: var(--text-sub);
-            text-transform: uppercase;
-            letter-spacing: 2.5px;
-        }
-
-        /* ─── ERROR ─── */
-        #error-msg {
-            position: fixed; top: 100px; left: 20px; right: 20px; z-index: 1000;
-            background: var(--danger); color: white; padding: 15px; border-radius: 14px;
-            text-align: center; font-size: 13px; font-weight: 600; display: none;
-            box-shadow: 0 10px 30px var(--danger-glow);
-        }
-
-        /* ─── PIN SCREEN ─── */
-        #pin-screen {
-            position: fixed; inset: 0;
-            background: var(--bg);
-            background-image:
-                radial-gradient(circle at 20% 30%, rgba(245, 158, 11, 0.06) 0%, transparent 50%),
-                radial-gradient(circle at 80% 70%, rgba(20, 184, 166, 0.05) 0%, transparent 50%);
-            z-index: 2000;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 32px 24px;
-        }
-
-        .pin-card {
-            width: 100%;
-            max-width: 360px;
-            background: rgba(14, 14, 18, 0.9);
-            border: 1px solid var(--border);
-            border-radius: 28px;
-            padding: 40px 32px;
-            text-align: center;
-            backdrop-filter: blur(20px);
-            box-shadow: 0 30px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
-        }
-
-        .pin-card .logo-box {
-            width: 56px; height: 56px;
-            font-size: 22px;
-            margin: 0 auto 20px;
-        }
-
-        .pin-card h2 {
-            font-family: var(--font-display);
-            font-weight: 900;
-            font-size: 26px;
-            margin-bottom: 6px;
-        }
-
-        .pin-card h2 span { font-weight: 300; color: var(--text-sub); }
-
-        .pin-sub {
-            font-size: 13px;
-            color: var(--text-sub);
-            line-height: 1.5;
-            margin-bottom: 32px;
-        }
-
-        .pin-sub strong { color: var(--amber); }
-
-        .pin-input-wrap {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-bottom: 28px;
-        }
-
-        .pin-digit {
-            width: 56px; height: 64px;
-            background: rgba(0,0,0,0.4);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            color: var(--amber);
-            font-family: var(--font-mono);
-            font-size: 28px;
-            font-weight: 700;
-            text-align: center;
-            outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s;
-            -moz-appearance: textfield;
-        }
-
-        .pin-digit::-webkit-outer-spin-button,
-        .pin-digit::-webkit-inner-spin-button { -webkit-appearance: none; }
-
-        .pin-digit:focus {
-            border-color: var(--amber);
-            box-shadow: 0 0 0 3px var(--amber-glow);
-        }
-
-        .btn-connect {
-            width: 100%;
-            background: linear-gradient(135deg, var(--amber), var(--amber-dark));
-            color: #000;
-            font-family: var(--font-display);
-            font-weight: 900;
-            font-size: 16px;
-            letter-spacing: 0.5px;
-            border: none;
-            padding: 18px;
-            border-radius: 14px;
-            cursor: pointer;
-            box-shadow: 0 8px 24px var(--amber-glow);
-            transition: transform 0.15s, opacity 0.15s;
-        }
-
-        .btn-connect:active { transform: scale(0.97); opacity: 0.9; }
-
-        #pinError {
-            margin-top: 16px;
-            color: var(--danger);
-            font-size: 13px;
-            font-weight: 600;
-            min-height: 20px;
-        }
-
-        /* ─── UTILITY ─── */
-        .hidden { display: none !important; }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>OverTalk &mdash; Mobile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+:root{
+  --bg:#08080c;
+  --amber:#f59e0b;
+  --glow:rgba(245,158,11,.22);
+  --amber2:#b45309;
+  --teal:#14b8a6;
+  --tglow:rgba(20,184,166,.2);
+  --red:#ef4444;
+  --rglow:rgba(239,68,68,.25);
+  --glass:rgba(14,14,18,.88);
+  --bord:rgba(255,255,255,.08);
+  --text:#f1f5f9;
+  --sub:#94a3b8;
+  --card:rgba(255,255,255,.035);
+  --sans:'Inter',sans-serif;
+  --disp:'Outfit',sans-serif;
+  --mono:'JetBrains Mono',monospace
+}
+body{
+  font-family:var(--sans);background:var(--bg);color:var(--text);
+  height:100dvh;display:flex;flex-direction:column;overflow:hidden;
+  background-image:radial-gradient(ellipse at 15% 0%,rgba(245,158,11,.06) 0%,transparent 50%),
+    radial-gradient(ellipse at 85% 100%,rgba(20,184,166,.04) 0%,transparent 50%)
+}
+#pin-screen{
+  position:fixed;inset:0;z-index:2000;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:24px;background:var(--bg)
+}
+.pin-card{
+  width:100%;max-width:380px;
+  background:rgba(14,14,18,.92);border:1px solid var(--bord);
+  border-radius:32px;padding:40px 28px 36px;
+  text-align:center;backdrop-filter:blur(16px);
+  box-shadow:0 24px 64px rgba(0,0,0,.5)
+}
+.pin-logo{
+  width:52px;height:52px;margin:0 auto 18px;
+  background:linear-gradient(135deg,var(--amber),var(--amber2));
+  border-radius:14px;display:flex;align-items:center;justify-content:center;
+  font-family:var(--disp);font-weight:900;font-size:20px;color:#000;
+  box-shadow:0 0 24px var(--glow)
+}
+.pin-card h1{
+  font-family:var(--disp);font-weight:900;font-size:24px;margin-bottom:4px
+}
+.pin-card h1 span{font-weight:300;color:var(--sub)}
+.pin-desc{
+  font-size:13px;color:var(--sub);line-height:1.6;margin-bottom:32px
+}
+.pin-desc strong{color:var(--amber)}
+.pin-inputs{
+  display:flex;gap:8px;justify-content:center;margin-bottom:28px
+}
+.pin-inputs input{
+  width:48px;height:60px;border-radius:14px;
+  background:rgba(0,0,0,.5);border:2px solid rgba(245,158,11,.35);
+  color:var(--amber);font-family:var(--mono);font-size:30px;font-weight:700;
+  text-align:center;outline:none;padding:0;
+  -webkit-appearance:none;-moz-appearance:textfield;
+  transition:all .2s;caret-color:var(--amber)
+}
+.pin-inputs input::-webkit-inner-spin-button,
+.pin-inputs input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.pin-inputs input:focus{
+  border-color:var(--amber);
+  box-shadow:0 0 20px var(--glow),inset 0 0 6px rgba(245,158,11,.08);
+  background:rgba(245,158,11,.1);transform:scale(1.06)
+}
+.pin-inputs input.filled{
+  border-color:var(--amber);background:rgba(245,158,11,.13);
+  box-shadow:0 0 12px rgba(245,158,11,.12)
+}
+.btn-pin{
+  width:100%;padding:18px 24px;border-radius:16px;border:none;
+  background:linear-gradient(135deg,var(--amber),var(--amber2));
+  color:#000;font-family:var(--disp);font-weight:900;font-size:17px;letter-spacing:.5px;
+  cursor:pointer;box-shadow:0 10px 28px var(--glow);
+  transition:transform .15s,opacity .2s,box-shadow .2s;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation
+}
+.btn-pin:active{transform:scale(.96)}
+.btn-pin:disabled{opacity:.5;transform:none;box-shadow:none;cursor:default}
+#pinStatus{
+  margin-top:18px;min-height:24px;font-size:13px;font-weight:600;
+  color:var(--sub);transition:all .2s
+}
+#pinStatus.error{color:var(--red)}
+#pinStatus.loading{color:var(--amber)}
+#pinStatus.success{color:var(--teal)}
+header{
+  background:var(--glass);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  padding:calc(env(safe-area-inset-top)+12px) 16px 12px;
+  border-bottom:1px solid var(--bord);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0
+}
+.hdr-l{display:flex;align-items:center;gap:10px}
+.hdr-logo{
+  width:34px;height:34px;border-radius:10px;
+  background:linear-gradient(135deg,var(--amber),var(--amber2));
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--disp);font-weight:900;font-size:15px;color:#000;
+  box-shadow:0 0 14px var(--glow);flex-shrink:0
+}
+.hdr-nome{font-family:var(--disp);font-weight:900;font-size:17px;letter-spacing:-.3px;line-height:1}
+.hdr-nome span{font-weight:300;color:var(--sub)}
+.hdr-sub{font-size:9px;font-weight:600;color:var(--amber);letter-spacing:1.5px;text-transform:uppercase;margin-top:1px}
+.pill{
+  background:rgba(0,0,0,.4);border:1px solid var(--bord);
+  padding:5px 12px;border-radius:20px;font-size:9px;font-weight:700;letter-spacing:.8px;
+  color:var(--red);display:flex;align-items:center;gap:6px;text-transform:uppercase;white-space:nowrap;
+  transition:all .4s
+}
+.pill.on{color:var(--teal);border-color:rgba(20,184,166,.2);background:rgba(20,184,166,.06)}
+.pill .dot{width:5px;height:5px;border-radius:50%;background:currentColor;box-shadow:0 0 6px currentColor;flex-shrink:0}
+.btn-sair{
+  background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.4);
+  color:var(--red);font-family:var(--mono);font-size:9px;font-weight:700;
+  letter-spacing:.5px;text-transform:uppercase;
+  padding:5px 12px;border-radius:20px;cursor:pointer;
+  -webkit-tap-highlight-color:transparent
+}
+.btn-sair:active{background:rgba(239,68,68,.25)}
+#chat{
+  flex:1;overflow-y:auto;padding:16px;
+  display:flex;flex-direction:column;gap:12px;scrollbar-width:none
+}
+#chat::-webkit-scrollbar{display:none}
+.msg{
+  max-width:88%;padding:12px 16px;border-radius:18px;
+  border:1px solid var(--bord);
+  animation:pop .3s cubic-bezier(.18,.89,.32,1.2)
+}
+@keyframes pop{
+  from{opacity:0;transform:translateY(16px) scale(.95)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+.msg.eu{align-self:flex-end;background:linear-gradient(135deg,rgba(245,158,11,.18),rgba(180,83,9,.12));border-color:rgba(245,158,11,.22);border-bottom-right-radius:4px}
+.msg.nativo{align-self:flex-start;background:rgba(20,184,166,.06);border-color:rgba(20,184,166,.12);border-bottom-left-radius:4px}
+.msg-rot{font-family:var(--mono);font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px;opacity:.6;display:block;margin-bottom:5px}
+.msg.eu .msg-rot{color:var(--amber)}
+.msg.nativo .msg-rot{color:var(--teal)}
+.msg-trad{font-family:var(--disp);font-size:16px;font-weight:600;display:block;line-height:1.4;margin-bottom:3px}
+.msg-orig{font-size:11px;color:var(--sub);font-style:italic;display:block;line-height:1.4}
+.ctrl{
+  background:var(--glass);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border-top:1px solid var(--bord);
+  padding:20px 20px calc(20px+env(safe-area-inset-bottom));
+  display:flex;flex-direction:column;align-items:center;gap:12px;flex-shrink:0
+}
+.vol-meter{
+  width:140px;height:5px;border-radius:10px;
+  background:rgba(0,0,0,.5);border:1px solid var(--bord);overflow:hidden;display:none
+}
+.vol-bar{
+  height:100%;width:0%;
+  background:linear-gradient(90deg,var(--amber),var(--teal));
+  transition:width .04s;box-shadow:0 0 8px var(--amber)
+}
+.btn-mic-wrap{
+  position:relative;width:84px;height:84px;
+  display:flex;align-items:center;justify-content:center
+}
+.btn-mic-ring{
+  position:absolute;inset:-3px;border-radius:50%;
+  border:2px solid var(--amber);opacity:0;transition:opacity .3s
+}
+.btn-mic{
+  width:68px;height:68px;border-radius:50%;border:none;
+  background:linear-gradient(135deg,var(--amber),var(--amber2));
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 6px 24px var(--glow);
+  cursor:pointer;outline:none;
+  -webkit-tap-highlight-color:transparent;
+  transition:transform .15s,box-shadow .15s;z-index:2
+}
+.btn-mic svg{width:28px;height:28px;color:#000}
+.btn-mic.gravando{
+  background:linear-gradient(135deg,var(--red),#c0122e);
+  box-shadow:0 0 0 5px rgba(239,68,68,.12),0 6px 24px var(--rglow);
+  transform:scale(.95)
+}
+.btn-mic.gravando+.btn-mic-ring{opacity:1;border-color:var(--red);animation:pulse 1.4s infinite}
+@keyframes pulse{
+  0%{transform:scale(1);opacity:.6}
+  100%{transform:scale(1.6);opacity:0}
+}
+.mic-hint{font-family:var(--mono);font-size:9px;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:2px}
+#reconnect{
+  display:none;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);
+  border-radius:12px;padding:10px 16px;margin:6px 16px 0;
+  text-align:center;font-size:11px;color:var(--sub);flex-shrink:0
+}
+#reconnect button{
+  background:none;border:1px solid var(--amber);color:var(--amber);
+  font-family:var(--sans);font-size:11px;font-weight:700;
+  padding:4px 14px;border-radius:16px;margin-left:8px;cursor:pointer
+}
+#reconnect button:active{background:rgba(245,158,11,.12)}
+#error-msg{
+  position:fixed;top:100px;left:20px;right:20px;z-index:9999;
+  background:var(--red);color:#fff;padding:14px 20px;border-radius:14px;
+  text-align:center;font-size:13px;font-weight:600;display:none;
+  box-shadow:0 8px 28px var(--rglow)
+}
+.hidden{display:none!important}
+@media(max-width:360px){
+  .pin-card{padding:28px 20px 30px}
+  .pin-inputs input{width:40px;height:50px;font-size:22px}
+  .pin-inputs{gap:5px}
+}
+</style>
 </head>
 <body>
-
-    <!-- ─── PIN SCREEN ─── -->
-    <div id="pin-screen">
-        <div class="pin-card">
-            <div class="logo-box">OT</div>
-            <h2>Over<span>Talk</span></h2>
-            <p class="pin-sub">Digite o <strong>PIN de 4 dígitos</strong> exibido no painel do PC para entrar na sala privada.</p>
-
-            <div class="pin-input-wrap">
-                <input type="number" class="pin-digit" id="d0" maxlength="1" min="0" max="9" inputmode="numeric" autocomplete="off">
-                <input type="number" class="pin-digit" id="d1" maxlength="1" min="0" max="9" inputmode="numeric" autocomplete="off">
-                <input type="number" class="pin-digit" id="d2" maxlength="1" min="0" max="9" inputmode="numeric" autocomplete="off">
-                <input type="number" class="pin-digit" id="d3" maxlength="1" min="0" max="9" inputmode="numeric" autocomplete="off">
-                <input type="number" class="pin-digit" id="d4" maxlength="1" min="0" max="9" inputmode="numeric" autocomplete="off">
-                <input type="number" class="pin-digit" id="d5" maxlength="1" min="0" max="9" inputmode="numeric" autocomplete="off">
-            </div>
-
-            <button id="btnConnect" class="btn-connect">Entrar na Sala</button>
-            <div id="pinError"></div>
-        </div>
+<div id="pin-screen">
+  <div class="pin-card">
+    <div class="pin-logo">OT</div>
+    <h1>Over<span>Talk</span></h1>
+    <p class="pin-desc">Digite o <strong>PIN de 6 digitos</strong> exibido no painel do PC.</p>
+    <div class="pin-inputs">
+      <input type="text" id="d0" maxlength="1" inputmode="numeric" autocomplete="off" placeholder="0" aria-label="Digito 1">
+      <input type="text" id="d1" maxlength="1" inputmode="numeric" autocomplete="off" placeholder="0" aria-label="Digito 2">
+      <input type="text" id="d2" maxlength="1" inputmode="numeric" autocomplete="off" placeholder="0" aria-label="Digito 3">
+      <input type="text" id="d3" maxlength="1" inputmode="numeric" autocomplete="off" placeholder="0" aria-label="Digito 4">
+      <input type="text" id="d4" maxlength="1" inputmode="numeric" autocomplete="off" placeholder="0" aria-label="Digito 5">
+      <input type="text" id="d5" maxlength="1" inputmode="numeric" autocomplete="off" placeholder="0" aria-label="Digito 6">
     </div>
-
-    <!-- ─── MAIN APP ─── -->
-    <header id="main-header" class="hidden">
-        <div class="brand">
-            <div class="logo-box">OT</div>
-            <div>
-                <div class="brand-name">Over<span>Talk</span></div>
-                <div class="brand-sub">Mobile Hub</div>
-            </div>
-        </div>
-        <div id="statusPill" class="status-pill">
-            <span class="dot"></span>
-            <span id="statusText">Offline</span>
-        </div>
-    </header>
-
-    <div id="error-msg">⚠️ Permissão de Microfone Negada.</div>
-
-    <div id="chat">
-        <div class="bubble native" style="opacity: 0.4;">
-            <span class="bubble-label">Sistema</span>
-            <span class="translation">OverTalk inicializado.</span>
-            <span class="original">Sistemas prontos para tradução.</span>
-        </div>
+    <button id="btnConectar" class="btn-pin">Entrar na Sala</button>
+    <div id="pinStatus"></div>
+  </div>
+</div>
+<header id="mainHeader" class="hidden">
+  <div class="hdr-l">
+    <div class="hdr-logo">OT</div>
+    <div>
+      <div class="hdr-nome">Over<span>Talk</span></div>
+      <div class="hdr-sub">Mobile</div>
     </div>
-
-    <div class="controls hidden" id="main-controls">
-        <div class="vol-meter-wrap" id="volWrap">
-            <div class="vol-meter-inner" id="volInner"></div>
-        </div>
-
-        <div class="mic-wrap">
-            <button id="micBtn" class="mic-btn">
-                <!-- Mic SVG icon -->
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
-                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
-                    <line x1="12" y1="19" x2="12" y2="23"/>
-                    <line x1="8" y1="23" x2="16" y2="23"/>
-                </svg>
-            </button>
-            <div class="mic-ring"></div>
-        </div>
-
-        <div id="micStatus" class="mic-hint">Segure para Falar</div>
-    </div>
-
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <button id="btnSair" class="btn-sair hidden">Sair</button>
+    <div id="pillStatus" class="pill"><span class="dot"></span><span id="pillText">Offline</span></div>
+  </div>
+</header>
+<div id="reconnect"><span id="reconText">Conexao perdida.</span><button id="btnRecon">Reconectar</button></div>
+<div id="error-msg">Permissao de Microfone Negada.</div>
+<div id="chat"></div>
+<div class="ctrl hidden" id="ctrlBox">
+  <div class="vol-meter" id="volWrap"><div class="vol-bar" id="volBar"></div></div>
+  <div class="btn-mic-wrap">
+    <button id="btnMic" class="btn-mic">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+        <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+        <line x1="12" y1="19" x2="12" y2="23"/>
+        <line x1="8" y1="23" x2="16" y2="23"/>
+      </svg>
+    </button>
+    <div class="btn-mic-ring"></div>
+  </div>
+  <div id="micHint" class="mic-hint">Segure para Falar</div>
+</div>
 <script>
-    let sessionToken = localStorage.getItem('ovt_token') || null;
+(function(){
+var SUPABASE_URL='https://nzcciwoxtnfeixphsmro.supabase.co';
+var SUPABASE_ANON_KEY='sb_publishable_Ze6xS2HlVCV-05-rieBHUA_hOe9t3nZ';
+var BACKEND_URL=null;
+var _backendResolve=null;
+var _backendReady=new Promise(function(r){_backendResolve=r;});
 
-    const pinScreen    = document.getElementById('pin-screen');
-    const mainHeader   = document.getElementById('main-header');
-    const mainControls = document.getElementById('main-controls');
-    const chat         = document.getElementById('chat');
-    const statusPill   = document.getElementById('statusPill');
-    const statusText   = document.getElementById('statusText');
-    const micBtn       = document.getElementById('micBtn');
+function _ping(url){
+  return new Promise(function(resolve){
+    var c=new AbortController();
+    var t=setTimeout(function(){c.abort();},4000);
+    fetch(url+'/api/health',{signal:c.signal})
+      .then(function(r){clearTimeout(t);resolve(r.ok?url:null);})
+      .catch(function(){clearTimeout(t);resolve(null);});
+  });
+}
 
-    // ─── PIN Digit Navigation ───
-    const digits = [document.getElementById('d0'), document.getElementById('d1'), document.getElementById('d2'), document.getElementById('d3'), document.getElementById('d4'), document.getElementById('d5')];
-    digits.forEach((d, i) => {
-        d.addEventListener('input', () => {
-            const val = d.value.replace(/[^0-9]/g, '');
-            d.value = val.slice(-1);
-            if (val && i < 3) digits[i + 1].focus();
-        });
-        d.addEventListener('keydown', e => {
-            if (e.key === 'Backspace' && !d.value && i > 0) digits[i - 1].focus();
-        });
+function detectBackend(){
+  var host=location.protocol+'//'+location.host;
+  var known=['https://tayronne-overtalk-backend.hf.space',
+             'https://tayronne-overtalk-backend.huggingface.co',
+             host,
+             'http://localhost:3000'];
+
+  fetch(SUPABASE_URL+'/rest/v1/config?id=eq.1',{
+    headers:{'apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+SUPABASE_ANON_KEY}
+  }).then(function(r){return r.json();}).then(function(d){
+    if(d&&d[0]&&d[0].backend_url&&known.indexOf(d[0].backend_url)===-1)
+      known.unshift(d[0].backend_url);
+  }).catch(function(){}).then(function(){
+    function next(i){
+      if(i>=known.length){BACKEND_URL=host;_backendResolve();return;}
+      _ping(known[i]).then(function(url){
+        if(url){BACKEND_URL=url;console.log('Backend:',url);_backendResolve();}
+        else next(i+1);
+      });
+    }
+    next(0);
+  });
+}
+
+function api(path,opts){
+  var fn=function(){return fetch(BACKEND_URL+path,opts||{});};
+  if(BACKEND_URL)return fn();
+  return _backendReady.then(fn);
+}
+
+var token=localStorage.getItem('ovt_token')||null;
+var es=null;
+var reconTimer=null;
+var reconAttempts=0;
+var audioCtx=null;
+var processor=null;
+var stream=null;
+var buf=[];
+var gravando=false;
+var lastUptime=null;
+
+var pinScreen=document.getElementById('pin-screen');
+var mainHeader=document.getElementById('mainHeader');
+var ctrlBox=document.getElementById('ctrlBox');
+var chat=document.getElementById('chat');
+var pill=document.getElementById('pillStatus');
+var pillText=document.getElementById('pillText');
+var btnMic=document.getElementById('btnMic');
+var micHint=document.getElementById('micHint');
+var btnSair=document.getElementById('btnSair');
+var btnCon=document.getElementById('btnConectar');
+var pinStatus=document.getElementById('pinStatus');
+var volWrap=document.getElementById('volWrap');
+var volBar=document.getElementById('volBar');
+var errMsg=document.getElementById('error-msg');
+var reconBar=document.getElementById('reconnect');
+var reconText=document.getElementById('reconText');
+var reconBtn=document.getElementById('btnRecon');
+var d=[];for(var i=0;i<6;i++)d.push(document.getElementById('d'+i));
+
+for(var i=0;i<6;i++)(function(idx){
+  var el=d[idx];
+  el.addEventListener('input',function(){
+    var v=el.value.replace(/[^0-9]/g,'');
+    if(v.length>1)v=v[v.length-1];
+    el.value=v;
+    el.classList.toggle('filled',!!v);
+    if(v&&idx<5)d[idx+1].focus();
+    if(v&&idx===5)setTimeout(conectar,80);
+  });
+  el.addEventListener('keydown',function(e){
+    if(e.key==='Backspace'){
+      e.preventDefault();
+      if(el.value){el.value='';el.classList.remove('filled');}
+      else if(idx>0)d[idx-1].focus();
+    }
+    if(e.key==='Enter'){e.preventDefault();conectar();}
+  });
+  el.addEventListener('focus',function(){el.select();});
+})(i);
+
+function getPin(){var p='';for(var j=0;j<6;j++)p+=d[j].value;return p;}
+function setSt(text,cls){pinStatus.textContent=text;pinStatus.className=cls||'';}
+
+function conectar(){
+  var pin=getPin();
+  if(pin.length!==6){setSt('Digite os 6 digitos.','error');return;}
+  if(btnCon.disabled)return;
+  btnCon.disabled=true;
+  setSt('Conectando...','loading');
+  connectPin(pin);
+}
+
+btnCon.addEventListener('click',conectar);
+document.addEventListener('keydown',function(e){
+  if(e.key==='Enter'&&!pinScreen.classList.contains('hidden')&&!btnCon.disabled)conectar();
+});
+
+function connectPin(pin){
+  limpar();
+  chat.innerHTML='';
+  reconBar.style.display='none';
+  api('/api/pair',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({pin:pin})
+  }).then(function(r){
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    return r.json();
+  }).then(function(data){
+    if(data.success){
+      token=data.token;
+      localStorage.setItem('ovt_token',token);
+      setSt('','');
+      pinScreen.classList.add('hidden');
+      mainHeader.classList.remove('hidden');
+      ctrlBox.classList.remove('hidden');
+      btnSair.classList.remove('hidden');
+      connectSSE();
+    }else{
+      setSt('PIN invalido. Tente novamente.','error');
+      for(var j=0;j<6;j++){d[j].value='';d[j].classList.remove('filled');}
+      d[0].focus();
+      btnCon.disabled=false;
+    }
+  }).catch(function(e){
+    console.error('PIN error:',e);
+    setSt('Servidor inacessivel. Verifique se o backend esta ativo.','error');
+    btnCon.disabled=false;
+  });
+}
+
+function connectSSE(){
+  if(!token||!BACKEND_URL)return;
+  if(es){es.close();es=null;}
+  es=new EventSource(BACKEND_URL+'/events?token='+token);
+  es.onopen=function(){
+    pill.classList.add('on');
+    pillText.textContent='Online';
+    reconBar.style.display='none';
+    reconAttempts=0;
+    if(reconTimer){clearTimeout(reconTimer);reconTimer=null;}
+  };
+  es.onerror=function(){
+    pill.classList.remove('on');
+    pillText.textContent='Reconectando...';
+    es.close();es=null;
+    reconAttempts++;
+    if(reconAttempts>3){
+      reconText.textContent='Conexao perdida.';
+      reconBar.style.display='block';
+    }
+    reconTimer=setTimeout(connectSSE,Math.min(3000*reconAttempts,15000));
+  };
+  es.onmessage=function(e){
+    try{
+      var data=JSON.parse(e.data);
+      if(data.type==='translation'){
+        addMsg(data.source,data.original,data.translated,data.isPartial,data.speaker,data.id);
+      }else if(data.type==='history'){
+        for(var j=0;j<data.messages.length;j++){
+          var m=data.messages[j];
+          addMsg(m.source,m.original,m.translated,false,m.speaker,m.id);
+        }
+      }else if(data.type==='heartbeat'){
+        pillText.textContent='Online '+(Date.now()-data.time)+'ms';
+      }
+    }catch(err){}
+  };
+}
+
+reconBtn.addEventListener('click',function(){
+  reconBar.style.display='none';
+  reconAttempts=0;
+  if(!pinScreen.classList.contains('hidden'))conectar();
+  else connectSSE();
+});
+
+function addMsg(src,orig,trad,parcial,falante,msgId){
+  if(msgId&&document.querySelector('.msg[data-id="'+msgId+'"]'))return;
+  var eu=src==='mic';
+  var nome=falante||(eu?'Voce':'Nativo');
+  var last=chat.lastElementChild;
+  if(last&&last.getAttribute('data-src')===src&&last.getAttribute('data-par')==='true'){
+    last.querySelector('.msg-trad').textContent=trad;
+    last.querySelector('.msg-orig').textContent=orig;
+    last.setAttribute('data-par',parcial?'true':'false');
+    if(msgId&&!parcial)last.setAttribute('data-id',msgId);
+    if(!parcial)last.style.opacity='1';
+  }else{
+    var div=document.createElement('div');
+    div.className='msg '+(eu?'eu':'nativo');
+    div.setAttribute('data-src',src);
+    div.setAttribute('data-par',parcial?'true':'false');
+    if(msgId&&!parcial)div.setAttribute('data-id',msgId);
+    if(parcial)div.style.opacity='.65';
+    div.innerHTML='<span class="msg-rot">'+nome.toUpperCase()+'</span><span class="msg-trad">'+trad+'</span><span class="msg-orig">'+orig+'</span>';
+    chat.appendChild(div);
+  }
+  chat.scrollTop=chat.scrollHeight;
+}
+
+function iniciarGrav(){
+  try{
+    var p;
+    if(!stream){
+      p=navigator.mediaDevices.getUserMedia({
+        audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:true}
+      });
+    }else{p=Promise.resolve(stream);}
+    p.then(function(s){
+      stream=s;
+      if(!audioCtx||audioCtx.state==='closed')
+        audioCtx=new(window.AudioContext||window.webkitAudioContext)({sampleRate:16000});
+      if(audioCtx.state==='suspended')return audioCtx.resume();
+    }).then(function(){
+      var src=audioCtx.createMediaStreamSource(stream);
+      processor=audioCtx.createScriptProcessor(4096,1,1);
+      buf=[];
+      processor.onaudioprocess=function(e){
+        var inp=e.inputBuffer.getChannelData(0);
+        var sum=0;
+        for(var j=0;j<inp.length;j++)sum+=inp[j]*inp[j];
+        var rms=Math.sqrt(sum/inp.length);
+        volBar.style.width=Math.min(100,rms*1000)+'%';
+        var b=new Float32Array(inp.length);
+        for(var j=0;j<inp.length;j++)b[j]=Math.max(-1,Math.min(1,inp[j]*4));
+        buf.push(b);
+      };
+      src.connect(processor);
+      processor.connect(audioCtx.destination);
+      btnMic.classList.add('gravando');
+      volWrap.style.display='block';
+      micHint.textContent='Gravando...';
+    }).catch(function(err){
+      console.error(err);
+      errMsg.style.display='block';
+      setTimeout(function(){errMsg.style.display='none';},4000);
     });
+  }catch(err){
+    console.error(err);
+    errMsg.style.display='block';
+    setTimeout(function(){errMsg.style.display='none';},4000);
+  }
+}
 
-    function getPIN() { return digits.map(d => d.value).join(''); }
+function pararGrav(){
+  if(!processor)return;
+  btnMic.classList.remove('gravando');
+  volWrap.style.display='none';
+  micHint.textContent='Enviando...';
+  processor.disconnect();
+  processor.onaudioprocess=null;
+  processor=null;
+  var total=0;
+  for(var j=0;j<buf.length;j++)total+=buf[j].length;
+  if(total>4000){
+    var merged=new Float32Array(total);
+    var off=0;
+    for(var j=0;j<buf.length;j++){merged.set(buf[j],off);off+=buf[j].length;}
+    api('/translate?source=mic&token='+token,{
+      method:'POST',
+      headers:{'Content-Type':'application/octet-stream'},
+      body:merged.buffer
+    }).then(function(){micHint.textContent='Enviado';})
+      .catch(function(){micHint.textContent='Erro';})
+      .then(function(){setTimeout(function(){micHint.textContent='Segure para Falar';},1500);});
+  }else{
+    micHint.textContent='Segure para Falar';
+  }
+}
 
-    // ─── SSE ───
-    let es = null, reconnectTimeout = null;
+function handleStart(e){e.preventDefault();if(gravando)return;gravando=true;iniciarGrav();}
+function handleStop(){if(!gravando)return;gravando=false;pararGrav();}
+btnMic.style.touchAction='none';
+btnMic.addEventListener('pointerdown',handleStart);
+window.addEventListener('pointerup',handleStop);
+window.addEventListener('pointercancel',handleStop);
 
-    function connectSSE() {
-        if (!sessionToken) return;
-        if (es) es.close();
-        es = new EventSource(`/events?token=${sessionToken}`);
+function limpar(){
+  if(es){es.close();es=null;}
+  if(reconTimer){clearTimeout(reconTimer);reconTimer=null;}
+  if(stream){
+    if(stream.getTracks)stream.getTracks().forEach(function(t){t.stop();});
+    stream=null;
+  }
+  if(audioCtx&&audioCtx.state!=='closed')audioCtx.close().catch(function(){});
+  processor=null;buf=[];gravando=false;
+}
 
-        es.onopen = () => {
-            statusPill.classList.add('online');
-            statusText.innerText = 'Online';
-            if (reconnectTimeout) clearTimeout(reconnectTimeout);
-        };
+function desconectar(){
+  token=null;
+  localStorage.removeItem('ovt_token');
+  limpar();
+  chat.innerHTML='';
+  pill.classList.remove('on');
+  pillText.textContent='Offline';
+  btnSair.classList.add('hidden');
+  reconBar.style.display='none';
+  pinScreen.classList.remove('hidden');
+  mainHeader.classList.add('hidden');
+  ctrlBox.classList.add('hidden');
+  for(var j=0;j<6;j++){d[j].value='';d[j].classList.remove('filled');}
+  d[0].focus();
+  pinStatus.textContent='';pinStatus.className='';
+  btnCon.disabled=false;
+}
 
-        es.onerror = () => {
-            statusPill.classList.remove('online');
-            statusText.innerText = 'Reconectando...';
-            es.close();
-            reconnectTimeout = setTimeout(connectSSE, 3000);
-        };
+btnSair.addEventListener('click',desconectar);
+errMsg.addEventListener('click',function(){errMsg.style.display='none';});
 
-        es.onmessage = (e) => {
-            const data = JSON.parse(e.data);
-            if (data.type === 'translation') {
-                addBubble(data.source, data.original, data.translated, data.isPartial, data.speaker, data.id);
-            } else if (data.type === 'history') {
-                data.messages.forEach(m => addBubble(m.source, m.original, m.translated, false, m.speaker, m.id));
-            } else if (data.type === 'heartbeat') {
-                const ping = Date.now() - data.time;
-                statusText.innerText = `Online · ${ping}ms`;
-            }
-        };
-    }
+setInterval(function(){
+  if(!token||!BACKEND_URL)return;
+  api('/history_sync?token='+token)
+    .then(function(r){if(!r.ok)return null;return r.json();})
+    .then(function(h){
+      if(h){for(var j=0;j<h.length;j++){var m=h[j];addMsg(m.source,m.original,m.translated,false,m.speaker,m.id);}}
+    }).catch(function(){});
+},5000);
 
-    function addBubble(source, original, translated, isPartial, speaker, msgId = null) {
-        if (msgId && document.querySelector(`.bubble[data-id="${msgId}"]`)) return;
+setInterval(function(){
+  if(!BACKEND_URL)return;
+  fetch(BACKEND_URL+'/api/health')
+    .then(function(r){if(!r.ok)return null;return r.json();})
+    .then(function(data){
+      if(data&&lastUptime!==null&&data.uptime<lastUptime){
+        var b=document.createElement('div');
+        b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;background:#ef4444;color:#fff;text-align:center;padding:16px;font-weight:700;font-size:15px;';
+        b.textContent='Servidor reiniciou - recarregando em 5s...';
+        document.body.prepend(b);
+        setTimeout(function(){location.reload();},5000);
+      }
+      if(data)lastUptime=data.uptime;
+    }).catch(function(){});
+},5000);
 
-        const lastBubble = chat.lastElementChild;
-        const isSelf = source === 'mic';
-        const speakerName = speaker || (isSelf ? 'Você' : 'Native');
+var params=new URLSearchParams(window.location.search);
+var urlPin=params.get('pin');
 
-        if (lastBubble && lastBubble.getAttribute('data-source') === source && lastBubble.getAttribute('data-partial') === 'true') {
-            lastBubble.querySelector('.translation').innerText = translated;
-            lastBubble.querySelector('.original').innerText    = original;
-            lastBubble.setAttribute('data-partial', isPartial ? 'true' : 'false');
-            if (msgId && !isPartial) lastBubble.setAttribute('data-id', msgId);
-            if (!isPartial) lastBubble.style.opacity = '1';
-        } else {
-            const div = document.createElement('div');
-            div.className = `bubble ${isSelf ? 'me' : 'native'}`;
-            div.setAttribute('data-source', source);
-            div.setAttribute('data-partial', isPartial ? 'true' : 'false');
-            if (msgId && !isPartial) div.setAttribute('data-id', msgId);
-            if (isPartial) div.style.opacity = '0.65';
-            div.innerHTML = `
-                <span class="bubble-label">${speakerName.toUpperCase()}</span>
-                <span class="translation">${translated}</span>
-                <span class="original">${original}</span>
-            `;
-            chat.appendChild(div);
-        }
-        chat.scrollTop = chat.scrollHeight;
-        if (!isPartial && navigator.vibrate) navigator.vibrate(50);
-    }
+if(urlPin&&token){
+  localStorage.removeItem('ovt_token');
+  token=null;
+  limpar();
+}
 
-    // ─── Short-poll fallback ───
-    setInterval(async () => {
-        if (!sessionToken) return;
-        try {
-            const res     = await fetch(`/history_sync?token=${sessionToken}`);
-            const history = await res.json();
-            history.forEach(m => addBubble(m.source, m.original, m.translated, false, m.speaker, m.id));
-        } catch (e) {}
-    }, 5000);
-
-    // ─── Mic Recording ───
-    let audioCtx = null, processor = null, stream = null, audioData = [];
-
-    async function startRecording() {
-        try {
-            if (!stream) {
-                stream = await navigator.mediaDevices.getUserMedia({
-                    audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: true }
-                });
-            }
-            if (!audioCtx || audioCtx.state === 'closed') {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 16000 });
-            }
-            if (audioCtx.state === 'suspended') await audioCtx.resume();
-
-            const src = audioCtx.createMediaStreamSource(stream);
-            processor  = audioCtx.createScriptProcessor(4096, 1, 1);
-            audioData  = [];
-
-            processor.onaudioprocess = (e) => {
-                const inp = e.inputBuffer.getChannelData(0);
-                let sum = 0;
-                for (let i = 0; i < inp.length; i++) sum += inp[i] * inp[i];
-                const rms = Math.sqrt(sum / inp.length);
-                document.getElementById('volInner').style.width = Math.min(100, rms * 1000) + '%';
-
-                const boosted = new Float32Array(inp.length);
-                for (let i = 0; i < inp.length; i++) {
-                    boosted[i] = Math.max(-1, Math.min(1, inp[i] * 4.0));
-                }
-                audioData.push(boosted);
-            };
-
-            src.connect(processor);
-            processor.connect(audioCtx.destination);
-            micBtn.classList.add('active');
-            document.getElementById('volWrap').style.display = 'block';
-            document.getElementById('micStatus').innerText = '● Ouvindo...';
-            if (navigator.vibrate) navigator.vibrate([30, 20, 30]);
-        } catch (err) {
-            console.error(err);
-            document.getElementById('error-msg').style.display = 'block';
-        }
-    }
-
-    async function stopRecording() {
-        if (!processor) return;
-        micBtn.classList.remove('active');
-        document.getElementById('volWrap').style.display = 'none';
-        document.getElementById('micStatus').innerText = '⏳ Enviando...';
-        processor.disconnect();
-        processor.onaudioprocess = null;
-        processor = null;
-
-        const totalLength = audioData.reduce((a, b) => a + b.length, 0);
-        if (totalLength > 4000) {
-            const merged = new Float32Array(totalLength);
-            let offset = 0;
-            for (const buf of audioData) { merged.set(buf, offset); offset += buf.length; }
-
-            fetch(`/translate?source=mic&token=${sessionToken}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/octet-stream' },
-                body: merged.buffer
-            }).then(r => r.json()).then(json => {
-                document.getElementById('micStatus').innerText = '✓ Enviado';
-                // SSE já exibe a tradução via broadcastEvent — não duplicar aqui
-            }).catch(() => {
-                document.getElementById('micStatus').innerText = '✗ Erro';
-            }).finally(() => {
-                setTimeout(() => { document.getElementById('micStatus').innerText = 'Segure para Falar'; }, 1500);
-            });
-        } else {
-            document.getElementById('micStatus').innerText = 'Segure para Falar';
-        }
-    }
-
-    let isRecording = false;
-    function handleStart(e) { e.preventDefault(); if (isRecording) return; isRecording = true; startRecording(); }
-    function handleStop()   { if (!isRecording) return; isRecording = false; stopRecording(); }
-
-    micBtn.style.touchAction = 'none';
-    micBtn.addEventListener('pointerdown', handleStart);
-    window.addEventListener('pointerup',     handleStop);
-    window.addEventListener('pointercancel', handleStop);
-
-    // --- QR Auto-connect (PIN na URL) ---
-    const urlParams = new URLSearchParams(window.location.search);
-    const urlPin = urlParams.get('pin');
-
-    // ─── PIN Logic ───
-    async function connectWithPin(pin) {
-        const err = document.getElementById('pinError');
-        err.innerText = 'Verificando...';
-
-        // Limpa sessão anterior
-        if (sessionToken) {
-            if (es) { es.close(); es = null; }
-            if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-            if (audioCtx && audioCtx.state !== 'closed') { audioCtx.close().catch(()=>{}); audioCtx = null; }
-            processor = null; audioData = [];
-            chat.innerHTML = '';
-            localStorage.removeItem('ovt_token');
-        }
-
-        try {
-            const res  = await fetch('/api/pair', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ pin })
-            });
-            const data = await res.json();
-
-            if (data.success) {
-                sessionToken = data.token;
-                localStorage.setItem('ovt_token', sessionToken);
-                err.innerText = '';
-                pinScreen.classList.add('hidden');
-                mainHeader.classList.remove('hidden');
-                mainControls.classList.remove('hidden');
-                chat.classList.remove('hidden');
-                connectSSE();
-            } else {
-                err.innerText = 'PIN inválido. Tente novamente.';
-                digits.forEach(d => d.value = '');
-                digits[0].focus();
-            }
-        } catch (e) {
-            err.innerText = 'Servidor inacessível. Verifique o túnel.';
-        }
-    }
-
-    document.getElementById('btnConnect').addEventListener('click', async () => {
-        const pin = getPIN();
-        const err = document.getElementById('pinError');
-        if (pin.length !== 6) { err.innerText = 'Digite todos os 6 dígitos.'; return; }
-        await connectWithPin(pin);
-    });
-
-    // Allow Enter key to submit
-    document.addEventListener('keydown', e => {
-        if (e.key === 'Enter' && !pinScreen.classList.contains('hidden')) {
-            document.getElementById('btnConnect').click();
-        }
-    });
-
-    // Auto-connect if token already saved
-    if (sessionToken) {
-        pinScreen.classList.add('hidden');
-        mainHeader.classList.remove('hidden');
-        mainControls.classList.remove('hidden');
-        connectSSE();
-    } else if (urlPin && /^\d{6}$/.test(urlPin)) {
-        document.querySelector('.pin-sub').innerHTML = '🔗 Conectando via QR Code...';
-        digits.forEach((d, i) => { d.value = urlPin[i]; });
-        setTimeout(() => connectWithPin(urlPin), 400);
-    } else {
-        chat.classList.add('hidden');
-        digits[0].focus();
-    }
+detectBackend().then(function(){
+  if(token&&!urlPin){
+    pinScreen.classList.add('hidden');
+    mainHeader.classList.remove('hidden');
+    ctrlBox.classList.remove('hidden');
+    btnSair.classList.remove('hidden');
+    connectSSE();
+  }else if(urlPin&&/^\d{6}$/.test(urlPin)){
+    document.querySelector('.pin-desc').innerHTML='Conectando via <strong>QR Code</strong>...';
+    for(var j=0;j<6;j++){d[j].value=urlPin[j];d[j].classList.add('filled');}
+    setTimeout(function(){connectPin(urlPin);},300);
+  }else{
+    chat.classList.add('hidden');
+    d[0].focus();
+  }
+});
+})();
 </script>
 </body>
 </html>
