@@ -336,7 +336,22 @@ async function resolveSseUser(token) {
 }
 
 app.get('/api/pin', (req, res) => {
-    res.json({ url: currentTunnelUrl });
+    // Prioridade: Túnel SSH > URL do backend atual > Fallback do Supabase
+    let url = currentTunnelUrl;
+    
+    if (!url) {
+        // Fallback 1: Use a URL atual do request (útil se o backend está no HF Space)
+        const protocol = req.protocol || 'https';
+        const host = req.get('host') || req.hostname || 'localhost:3000';
+        url = `${protocol}://${host}`;
+        
+        // Se estamos em produção (HF Space), garanta que é HTTPS
+        if (url.includes('hf.space') || url.includes('vercel.app')) {
+            url = url.replace('http://', 'https://');
+        }
+    }
+    
+    res.json({ url: url || 'http://localhost:3000' });
 });
 
 // --- SIGNUP PROXY (bypassa rate limit de email do Supabase) ---
