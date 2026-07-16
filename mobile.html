@@ -297,20 +297,25 @@ function detectBackend(){
              host,
              'http://localhost:3000'];
 
-  fetch(SUPABASE_URL+'/rest/v1/config?id=eq.1',{
+  return fetch(SUPABASE_URL+'/rest/v1/config?id=eq.1',{
     headers:{'apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+SUPABASE_ANON_KEY}
   }).then(function(r){return r.json();}).then(function(d){
     if(d&&d[0]&&d[0].backend_url&&known.indexOf(d[0].backend_url)===-1)
       known.unshift(d[0].backend_url);
   }).catch(function(){}).then(function(){
-    function next(i){
-      if(i>=known.length){BACKEND_URL=host;_backendResolve();return;}
-      _ping(known[i]).then(function(url){
-        if(url){BACKEND_URL=url;console.log('Backend:',url);_backendResolve();}
-        else next(i+1);
-      });
-    }
-    next(0);
+    return new Promise(function(resolve){
+      var timeout=setTimeout(function(){
+        BACKEND_URL=host;console.log('Backend(Timeout):',host);_backendResolve();resolve();
+      },8000);
+      function next(i){
+        if(i>=known.length){clearTimeout(timeout);BACKEND_URL=host;_backendResolve();resolve();return;}
+        _ping(known[i]).then(function(url){
+          if(url){clearTimeout(timeout);BACKEND_URL=url;console.log('Backend:',url);_backendResolve();resolve();}
+          else next(i+1);
+        });
+      }
+      next(0);
+    });
   });
 }
 
@@ -423,7 +428,8 @@ function connectPin(pin){
 }
 
 function connectSSE(){
-  if(!token||!BACKEND_URL)return;
+  if(!token)return;
+  if(!BACKEND_URL){_backendReady.then(connectSSE);return;}
   if(es){es.close();es=null;}
   es=new EventSource(BACKEND_URL+'/events?token='+token);
   es.onopen=function(){
